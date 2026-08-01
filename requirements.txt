@@ -1,5 +1,6 @@
 nfl-data-py==0.3.3
 pandas==1.5.3
-numpy==1.24.0
-pyarrow==11.0.0
+numpy==1.24.4
+pyarrow==14.0.2
 appdirs==1.4.4
+fastparquet==2023.8.0
