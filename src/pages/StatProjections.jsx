@@ -5,13 +5,13 @@ import rostersData from '../data/rosters_2026.json'
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 const LEAGUE = {
-  teamCarries: 420,
-  teamPassAttempts: 560,
-  yardsPerCarry: 4.3,
-  yardsPerTarget: 7.8,
-  catchRate: 0.68,
-  tdPerCarry: 0.042,
-  tdPerTarget: 0.055,
+  teamCarries: 430,         // avg team rushing attempts per season
+  teamPassAttempts: 575,    // avg team pass attempts per season  
+  yardsPerCarry: 4.4,       // league avg yards per carry
+  yardsPerTarget: 8.0,      // league avg yards per target
+  catchRate: 0.67,          // league avg catch rate
+  tdPerCarry: 0.043,        // TDs per carry
+  tdPerTarget: 0.056,       // TDs per target
   gamesPerSeason: 17,
 }
 
@@ -98,7 +98,7 @@ function projectPlayer(player, team) {
     return {
       carries: null, rushYds: null, rushTds: null,
       tgts: Math.round(tgts), receptions: Math.round(rec), recYds: Math.round(recYd), recTds: +recTd.toFixed(1),
-      targetShare: +tgtShareP.toFixed(1),
+      targetShare: +tgtShareP.toFixed(1), // stored as percentage e.g. 31.9
       passAtt: null, passYds: null, passTds: null, ints: null,
       ppr: Math.round(ppr), std: Math.round(std),
       floor: Math.round(ppr * 0.70), ceiling: Math.round(ppr * 1.42),
