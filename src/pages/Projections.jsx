@@ -305,14 +305,10 @@ export default function Projections() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={refreshRosters}
-            disabled={loading}
-            className="flex items-center gap-2 px-3 py-2 bg-nfl-card border border-nfl-border rounded-lg text-sm text-slate-300 hover:text-white hover:border-nfl-blue transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            {loading ? 'Pulling rosters...' : 'Refresh Rosters'}
-          </button>
+          <div className="flex items-center gap-2 px-3 py-2 bg-nfl-card border border-nfl-border rounded-lg text-sm text-slate-500">
+            <RefreshCw size={14} />
+            Rosters: {lastUpdated}
+          </div>
           <button
             onClick={() => setShowTeamSliders(!showTeamSliders)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
