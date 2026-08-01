@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0a0e1a;
+  color: #f1f5f9;
+  font-family: 'Inter', sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 3px;
+}
+
+.signal-green { @apply text-emerald-400 bg-emerald-400/10 border border-emerald-400/30; }
+.signal-yellow { @apply text-amber-400 bg-amber-400/10 border border-amber-400/30; }
+.signal-red { @apply text-red-400 bg-red-400/10 border border-red-400/30; }
+.signal-unknown { @apply text-slate-400 bg-slate-400/10 border border-slate-400/30; }
