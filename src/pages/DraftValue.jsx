@@ -6,9 +6,9 @@ import rostersData from '../data/rosters_2026.json'
 // ─── PROJECTION ENGINE (same as StatProjections) ─────────────────────────────
 
 const LEAGUE = {
-  teamCarries: 420, teamPassAttempts: 560,
-  yardsPerCarry: 4.3, yardsPerTarget: 7.8,
-  catchRate: 0.68, tdPerCarry: 0.042, tdPerTarget: 0.055,
+  teamCarries: 430, teamPassAttempts: 575,
+  yardsPerCarry: 4.4, yardsPerTarget: 8.0,
+  catchRate: 0.67, tdPerCarry: 0.043, tdPerTarget: 0.056,
 }
 const SCORING = { rushYd: 0.1, recYd: 0.1, rushTd: 6, recTd: 6, rec: 1, passTd: 4, passYd: 0.04, passInt: -2 }
 
