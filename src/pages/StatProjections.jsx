@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, Settings } from 'lucide-react'
-import { projectPlayer, getTier, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING } from '../engine/scoring'
+import { projectPlayer, getTier, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING, calcPPR } from '../engine/scoring'
 import tendencies from '../data/tendencies.json'
 import rostersData from '../data/rosters_2026.json'
 import PlayerModal from '../components/PlayerModal'
@@ -39,8 +39,8 @@ export default function StatProjections() {
   const [showScoring, setShowScoring] = useState(false)
   const [customScoring, setCustomScoring] = useState({ ...DEFAULT_SCORING })
 
-  const activeScoringBase = showScoring ? customScoring : SCORING_PRESETS[scoringPreset].scoring
-  const scoring = activeScoringBase
+  // Always use customScoring when panel is open, otherwise use preset
+  const scoring = showScoring ? customScoring : SCORING_PRESETS[scoringPreset].scoring
 
   const teamMap = useMemo(() => {
     const m = {}
@@ -114,7 +114,7 @@ export default function StatProjections() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">2026 Projected Stats</h1>
         <p className="text-slate-400 text-sm">
-          Full-season projections from play-caller tendency × depth chart × 2024 calibrated efficiency.
+          Full-season projections from play-caller tendency × depth chart. Calibrated against 2025 actuals. Click any player for 2024 + 2025 stat comparison.
           Click any player for breakdown + 2024 actuals. Rosters: {rostersData.lastUpdated}.
         </p>
       </div>
