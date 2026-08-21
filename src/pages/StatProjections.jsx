@@ -47,6 +47,7 @@ export default function StatProjections() {
   const [situationFilter, setSituationFilter] = useState('all')
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [selectedTeamData, setSelectedTeamData] = useState(null)
+  // Always default to PPR - clear any cached scoring state
   const [scoringPreset, setScoringPreset] = useState(0)
   const [showScoring, setShowScoring] = useState(false)
   const [customScoring, setCustomScoring] = useState({ ...DEFAULT_SCORING })
@@ -90,12 +91,8 @@ export default function StatProjections() {
         if (teamFilter !== 'ALL' && p.team !== teamFilter) return false
         if (tierFilter !== 'ALL' && getTier(p.position, p.ppr).label !== tierFilter) return false
         if (situationFilter === 'new_caller' && !p.newCaller) return false
-        if (situationFilter === 'rookie' && (p.years_exp == null || p.years_exp > 0)) return false
-        if (situationFilter === 'new_team') {
-          // Flag players whose 2025 team differs from 2026 team (rough heuristic)
-          // We'll use years_exp > 0 and newCaller as proxy
-          if (!p.newCaller && p.years_exp == null) return false
-        }
+        if (situationFilter === 'rookie' && (p.years_exp == null || parseInt(p.years_exp) > 0)) return false
+        if (situationFilter === 'new_team' && parseInt(p.years_exp) <= 1 && p.depth_rank > 1) return false
         return true
       })
       .sort((a, b) => {
@@ -270,7 +267,7 @@ export default function StatProjections() {
               <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide text-center">Pos</th>
               <SortHeader label="Team" field="team" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide text-center">D</th>
-              <SortHeader label="PPR" field="ppr" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
+              <SortHeader label={`${SCORING_PRESETS[scoringPreset].label} Pts`} field="ppr" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
               <SortHeader label="Std" field="std" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
               <SortHeader label="Floor" field="floor" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
               <SortHeader label="Ceiling" field="ceiling" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
