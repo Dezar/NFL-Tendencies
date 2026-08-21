@@ -1,80 +1,106 @@
 import React from 'react'
-import { X } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { getTier, DEFAULT_SCORING } from '../engine/scoring'
 import stats2024data from '../data/stats_2024.json'
 import stats2025data from '../data/stats_2025.json'
+import tendencies from '../data/tendencies.json'
 
-const S2024 = {}
-stats2024data.players.forEach(p => { S2024[p.player_name] = p })
-const S2025 = {}
-stats2025data.players.forEach(p => { S2025[p.player_name] = p })
+const S24 = {}
+stats2024data.players.forEach(p => { S24[p.player_name] = p })
+const S25 = {}
+stats2025data.players.forEach(p => { S25[p.player_name] = p })
 
-function find(name, lookup) {
+const SIGNAL_MAP = {}
+tendencies.teams.forEach(team => {
+  (team.keyPlayers || []).forEach(kp => {
+    SIGNAL_MAP[kp.name] = { signal: kp.signal, note: kp.note }
+  })
+})
+
+function findStat(name, lookup) {
   if (lookup[name]) return lookup[name]
   const last = name.split(' ').pop().toLowerCase()
   return Object.values(lookup).find(p =>
-    p.player_name.toLowerCase().includes(last) &&
-    Math.abs(p.player_name.length - name.length) < 10
+    p.player_name.split(' ').pop().toLowerCase() === last &&
+    Math.abs(p.player_name.length - name.length) < 12
   ) || null
 }
 
 function schemeLines(player, team) {
-  if (!team) return ['No scheme data available.']
+  if (!team) return []
   const { position: pos, depth_rank: depth } = player
   const lines = []
-  const nc = team.newCaller
-  lines.push(nc
-    ? `${team.playCaller} is a first-time play-caller in 2026 — projections use league averages.`
-    : `${team.playCaller} has ${team.rbSeasons||0} seasons of historical data in our system.`)
+  if (team.newCaller) {
+    lines.push(`${team.playCaller} is a first-time play-caller in 2026 — projections use league averages.`)
+  } else {
+    lines.push(`${team.playCaller} has ${team.rbSeasons||0} seasons of historical data.`)
+  }
   if (pos==='RB') {
-    const s = team.avgRbShare??65, car = Math.round(430*s/100)
-    lines.push(`${team.playCaller} gives RB1 ${s.toFixed(1)}% of carries historically — ~${car} projected carries.`)
-    const recShare = team.avgRbRecShare
-    if (recShare) lines.push(`RB target share averages ${recShare.toFixed(1)}% under ${team.playCaller}.`)
-    if(s>=75) lines.push('Workhorse scheme — elite RB1 value, minimal committee risk.')
-    else if(s>=65) lines.push('Featured back — consistent volume and strong floor.')
-    else if(s<55) { lines.push('True committee — targets split. RB2 has real value.'); if(depth===1) lines.push('Avoid paying RB1 premium here.') }
+    const s = team.avgRbShare??65
+    lines.push(`${team.playCaller} gives RB1 ${s.toFixed(1)}% of carries — ~${Math.round(430*s/100)} projected carries.`)
+    if (team.avgRbRecShare) lines.push(`RBs get ${team.avgRbRecShare.toFixed(1)}% of team targets — ${team.avgRbRecShare>=18?'strong PPR value':team.avgRbRecShare>=12?'moderate receiving role':'minimal receiving role'}.`)
+    if (s>=75) lines.push('Workhorse scheme — elite volume, minimal committee risk.')
+    else if (s>=65) lines.push('Featured back — consistent carries and a strong floor.')
+    else if (s<55) lines.push('True committee — both backs have real fantasy value.')
   }
   if (pos==='WR') {
     const s = team.avgWr1Share??23
     const myShare = depth===1?s:depth===2?s*0.55:s*0.32
-    const tgts = Math.round(570*(myShare/100))
-    lines.push(`${team.playCaller} directs ~${tgts} targets to WR${depth} (${myShare.toFixed(1)}% share).`)
-    if(s>=30&&depth===1) lines.push('WR1-dominant — alpha receiver gets elite, consistent usage.')
-    else if(s<20&&depth===2) lines.push('Spread scheme benefits WR2 — multiple receivers share meaningful targets.')
+    lines.push(`${team.playCaller} directs WR${depth} ~${(myShare).toFixed(1)}% of targets (~${Math.round(570*myShare/100)} targets).`)
+    if (s>=30&&depth===1) lines.push('WR1-dominant scheme — elite, consistent usage.')
+    else if (s<20&&depth===1) lines.push('Spread scheme — WR1 ceiling capped but floor is reliable.')
+    else if (s<20&&depth===2) lines.push('Spread scheme — WR2 gets meaningful targets too.')
   }
   if (pos==='TE') {
     const s = team.avgTeShare??22
-    const tgts = Math.round(570*(s/100)*0.84)
-    lines.push(`${team.playCaller} uses TEs at ${s.toFixed(1)}% of targets — TE1 projects to ~${tgts} targets.`)
-    if(s>=30) lines.push('TE-heavy scheme — one of the best TE situations in the league.')
-    else if(s<20) lines.push('TE-averse — talent gets suppressed by scheme volume.')
+    lines.push(`${team.playCaller} uses TEs at ${s.toFixed(1)}% of targets — TE1 gets ~${Math.round(570*s/100*0.84)} targets.`)
+    if (s>=30) lines.push('TE-heavy scheme — one of the best TE situations in fantasy.')
+    else if (s<20) lines.push('TE-averse — scheme suppresses ceiling regardless of talent.')
   }
-  if (pos==='QB') {
-    lines.push('QB projection uses team pass-volume tendency and 2025 league-average efficiency.')
-  }
+  if (pos==='QB') lines.push('QB projection uses team pass-volume tendency and 2025 league-average efficiency.')
   if (team.notes) lines.push(team.notes)
   return lines
 }
 
-// Side-by-side stat comparison row
-function CompRow({ label, v2024, v2025, v2026, unit='' }) {
-  const vals = [v2024, v2025, v2026].map(v => v!=null ? (typeof v==='number'&&!Number.isInteger(v) ? v.toFixed(1) : v) : null)
+const SIG_STYLE = {
+  green:  'text-emerald-400 bg-emerald-400/10 border-emerald-400/30',
+  yellow: 'text-amber-400 bg-amber-400/10 border-amber-400/30',
+  red:    'text-red-400 bg-red-400/10 border-red-400/30',
+}
+const SIG_LABEL = { green:'🔥 Green Flag', yellow:'⚠️ Monitor', red:'❌ Red Flag' }
+
+function Trend({ a, b }) {
+  if (!a || !b) return null
+  const pct = (b-a)/a*100
+  if (Math.abs(pct)<5) return <Minus size={11} className="text-slate-500 inline ml-1"/>
+  return pct>0
+    ? <TrendingUp size={11} className="text-emerald-400 inline ml-1"/>
+    : <TrendingDown size={11} className="text-red-400 inline ml-1"/>
+}
+
+function CompRow({ label, v24, v25, v26, unit='', isKey }) {
+  const fmt = v => v!=null&&v!==0 ? `${typeof v==='number'&&!Number.isInteger(v)?v.toFixed(1):v}${unit}` : null
   return (
-    <div className="grid grid-cols-4 gap-2 items-center py-2 border-b border-nfl-border/30">
-      <div className="text-xs text-slate-400">{label}</div>
-      <div className="text-center text-xs text-slate-500 font-medium">{vals[0]!=null ? vals[0]+unit : <span className="text-slate-700">—</span>}</div>
-      <div className="text-center text-xs text-amber-300 font-semibold">{vals[1]!=null ? vals[1]+unit : <span className="text-slate-700">—</span>}</div>
-      <div className="text-center text-sm font-black text-blue-400">{vals[2]!=null ? vals[2]+unit : <span className="text-slate-700">—</span>}</div>
+    <div className={`grid grid-cols-4 gap-2 items-center py-2 border-b border-nfl-border/20 ${isKey?'bg-nfl-blue/5 -mx-1 px-1 rounded':''}`}>
+      <div className={`text-xs ${isKey?'text-white font-semibold':'text-slate-400'}`}>{label}</div>
+      <div className="text-center text-xs text-slate-500">{fmt(v24)??<span className="text-slate-700">—</span>}</div>
+      <div className="text-center text-xs text-amber-300 font-medium">
+        {fmt(v25)??<span className="text-slate-700">—</span>}
+        {v24&&v25?<Trend a={v24} b={v25}/>:null}
+      </div>
+      <div className="text-center text-sm font-black text-blue-400">{fmt(v26)??<span className="text-slate-600">—</span>}</div>
     </div>
   )
 }
 
-function StatBox({ label, value, color }) {
+function AdvBox({ label, v25, v24, unit='' }) {
+  if (!v25&&!v24) return null
+  const f = v => typeof v==='number'&&!Number.isInteger(v)?v.toFixed(1):v
   return (
     <div className="bg-nfl-dark rounded-xl p-3 text-center">
-      <div className={`text-xl font-black ${color||'text-white'}`}>{value??'—'}</div>
-      <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+      <div className="text-xs text-slate-500 mb-1">{label}</div>
+      {v25!=null&&<div className="text-base font-black text-amber-300">{f(v25)}{unit}</div>}
+      {v24!=null&&<div className="text-xs text-slate-500 mt-0.5">2024: {f(v24)}{unit}</div>}
     </div>
   )
 }
@@ -82,61 +108,86 @@ function StatBox({ label, value, color }) {
 export default function PlayerModal({ player, team, onClose, scoring=DEFAULT_SCORING }) {
   if (!player) return null
   const tier = getTier(player.position, player.ppr||0)
-  const a24  = find(player.player_name, S2024)
-  const a25  = find(player.player_name, S2025)
-  const pos  = player.position
+  const a24 = findStat(player.player_name, S24)
+  const a25 = findStat(player.player_name, S25)
+  const sig = SIGNAL_MAP[player.player_name]
+  const pos = player.position
   const lines = schemeLines(player, team)
+  const headshot = a25?.headshot_url || a24?.headshot_url || null
+  const pprTrend = a25?.fantasy_ppr ? Math.round((player.ppr-a25.fantasy_ppr)/a25.fantasy_ppr*100) : null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"/>
       <div className="relative bg-nfl-card border border-nfl-border rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
            onClick={e=>e.stopPropagation()}>
 
         {/* Header */}
-        <div className="sticky top-0 bg-nfl-card border-b border-nfl-border px-6 py-4 flex items-start justify-between z-10">
-          <div>
-            <h2 className="text-xl font-black text-white">{player.player_name}</h2>
-            <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <span className="text-xs font-bold bg-nfl-border/60 text-slate-300 px-2 py-0.5 rounded">{pos}</span>
-              <span className="text-sm text-slate-400">{player.team} · #{player.depth_rank} depth</span>
-              {player.age && <span className="text-xs text-slate-500">Age {player.age}</span>}
-              {player.years_exp!=null && <span className="text-xs text-slate-500">{player.years_exp}yr exp</span>}
+        <div className="sticky top-0 bg-nfl-card border-b border-nfl-border z-10 px-6 py-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              {headshot&&(
+                <img src={headshot} alt={player.player_name}
+                  className="w-14 h-14 rounded-xl object-cover bg-nfl-dark border border-nfl-border flex-shrink-0"
+                  onError={e=>e.target.style.display='none'}/>
+              )}
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-xl font-black text-white">{player.player_name}</h2>
+                  <span className="text-xs font-bold bg-nfl-border/60 text-slate-300 px-2 py-0.5 rounded">{pos}</span>
+                  {sig&&<span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${SIG_STYLE[sig.signal]||''}`}>{SIG_LABEL[sig.signal]||sig.signal}</span>}
+                </div>
+                <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
+                  <span className="text-white font-semibold">{player.team}</span>
+                  <span>Depth #{player.depth_rank}</span>
+                  {team&&<span className="text-slate-300">{team.playCaller}{team.newCaller?' (New)':''}</span>}
+                  {player.age&&<span>Age {player.age}</span>}
+                  {player.years_exp!=null&&<span>{player.years_exp}yr exp</span>}
+                </div>
+                {sig?.note&&<div className="text-xs text-slate-400 mt-1 italic">"{sig.note}"</div>}
+              </div>
             </div>
+            <button onClick={onClose} className="text-slate-400 hover:text-white ml-4 flex-shrink-0"><X size={20}/></button>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white ml-4"><X size={20}/></button>
         </div>
 
         <div className="px-6 py-5 space-y-6">
 
-          {/* PPR headline */}
-          <div className="flex items-center gap-6">
-            <div className="text-center flex-shrink-0">
+          {/* PPR Headline */}
+          <div className="flex items-stretch gap-4">
+            <div className="text-center flex-shrink-0 bg-nfl-dark rounded-xl px-5 py-4 flex flex-col items-center justify-center">
               <div className={`text-5xl font-black ${tier.color}`}>{player.ppr||0}</div>
-              <div className="text-xs text-slate-400 mt-1">2026 PPR Proj</div>
+              <div className="text-xs text-slate-400 mt-1">2026 PPR</div>
               <div className={`text-xs font-bold mt-1 ${tier.color}`}>{tier.label}</div>
+              {pprTrend!=null&&(
+                <div className={`text-xs mt-1 font-semibold ${pprTrend>=0?'text-emerald-400':'text-red-400'}`}>
+                  {pprTrend>=0?'↑':'↓'}{Math.abs(pprTrend)}% vs 2025
+                </div>
+              )}
             </div>
-            <div className="flex-1 space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-amber-400 font-semibold">Floor {player.floor}</span>
-                <span className="text-slate-400">{((player.ppr||0)/17).toFixed(1)} pts/gm</span>
-                <span className="text-blue-400 font-semibold">Ceiling {player.ceiling}</span>
-              </div>
-              <div className="h-2.5 bg-nfl-dark rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-amber-400 via-blue-500 to-emerald-400 rounded-full"
-                     style={{width:`${Math.min(((player.ppr||0)/(player.ceiling||1))*100,100)}%`}} />
-              </div>
-              {/* PPR history */}
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                <div className="text-center bg-nfl-dark rounded-lg p-2">
-                  <div className="text-xs text-slate-500">2024 PPR</div>
-                  <div className="text-sm font-bold text-slate-300">{a24?.fantasy_ppr ?? '—'}</div>
+            <div className="flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-amber-400 font-semibold">Floor {player.floor}</span>
+                  <span className="text-slate-400">{((player.ppr||0)/17).toFixed(1)} pts/gm</span>
+                  <span className="text-blue-400 font-semibold">Ceiling {player.ceiling}</span>
                 </div>
-                <div className="text-center bg-nfl-dark rounded-lg p-2">
-                  <div className="text-xs text-amber-400/70">2025 PPR</div>
-                  <div className="text-sm font-bold text-amber-300">{a25?.fantasy_ppr ?? '—'}</div>
+                <div className="h-2 bg-nfl-dark rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-amber-400 via-blue-500 to-emerald-400 rounded-full"
+                       style={{width:`${Math.min(((player.ppr||0)/(player.ceiling||1))*100,100)}%`}}/>
                 </div>
-                <div className="text-center bg-nfl-blue/10 border border-nfl-blue/20 rounded-lg p-2">
+                <div className="text-xs text-slate-500 mt-1">Std: {player.std}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="bg-nfl-dark rounded-lg p-2 text-center">
+                  <div className="text-xs text-slate-500">2024</div>
+                  <div className="text-sm font-bold text-slate-300">{a24?.fantasy_ppr??'—'}</div>
+                </div>
+                <div className="bg-nfl-dark border border-amber-400/20 rounded-lg p-2 text-center">
+                  <div className="text-xs text-amber-400/70">2025</div>
+                  <div className="text-sm font-bold text-amber-300">{a25?.fantasy_ppr??'—'}</div>
+                </div>
+                <div className="bg-nfl-blue/10 border border-nfl-blue/20 rounded-lg p-2 text-center">
                   <div className="text-xs text-blue-400">2026 Proj</div>
                   <div className="text-sm font-bold text-blue-400">{player.ppr||0}</div>
                 </div>
@@ -144,97 +195,119 @@ export default function PlayerModal({ player, team, onClose, scoring=DEFAULT_SCO
             </div>
           </div>
 
-          {/* Side-by-side stat comparison */}
+          {/* Stat Comparison */}
           <div>
-            <div className="grid grid-cols-4 gap-2 mb-1 px-0">
-              <div className="text-xs text-slate-600 font-medium uppercase tracking-wide">Stat</div>
+            <div className="grid grid-cols-4 gap-2 mb-2">
+              <div className="text-xs text-slate-600 uppercase tracking-wide font-medium">Stat</div>
               <div className="text-center text-xs text-slate-500 font-medium">2024</div>
               <div className="text-center text-xs text-amber-400/80 font-medium">2025</div>
               <div className="text-center text-xs text-blue-400 font-semibold">2026 Proj</div>
             </div>
-            {pos==='RB' && <>
-              <CompRow label="Carries"    v2024={a24?.carries}          v2025={a25?.carries}          v2026={player.carries} />
-              <CompRow label="Rush Yards" v2024={a24?.rushing_yards}    v2025={a25?.rushing_yards}    v2026={player.rushYds} />
-              <CompRow label="Rush TDs"   v2024={a24?.rushing_tds}      v2025={a25?.rushing_tds}      v2026={player.rushTds} />
-              <CompRow label="Targets"    v2024={a24?.targets}          v2025={a25?.targets}           v2026={player.tgts} />
-              <CompRow label="Receptions" v2024={a24?.receptions}       v2025={a25?.receptions}        v2026={player.receptions} />
-              <CompRow label="Rec Yards"  v2024={a24?.receiving_yards}  v2025={a25?.receiving_yards}   v2026={player.recYds} />
-              <CompRow label="PPR Pts"    v2024={a24?.fantasy_ppr}      v2025={a25?.fantasy_ppr}       v2026={player.ppr} />
+            {pos==='RB'&&<>
+              <CompRow label="Carries"    v24={a24?.carries}          v25={a25?.carries}          v26={player.carries} isKey/>
+              <CompRow label="Rush Yards" v24={a24?.rushing_yards}    v25={a25?.rushing_yards}    v26={player.rushYds} isKey/>
+              <CompRow label="Rush TDs"   v24={a24?.rushing_tds}      v25={a25?.rushing_tds}      v26={player.rushTds}/>
+              <CompRow label="Yds/Carry"  v24={a24?.ypc}              v25={a25?.ypc}              v26={null}/>
+              <CompRow label="Targets"    v24={a24?.targets}          v25={a25?.targets}          v26={player.tgts}/>
+              <CompRow label="Receptions" v24={a24?.receptions}       v25={a25?.receptions}       v26={player.receptions}/>
+              <CompRow label="Rec Yards"  v24={a24?.receiving_yards}  v25={a25?.receiving_yards}  v26={player.recYds}/>
+              <CompRow label="PPR Pts"    v24={a24?.fantasy_ppr}      v25={a25?.fantasy_ppr}      v26={player.ppr} isKey/>
             </>}
-            {(pos==='WR'||pos==='TE') && <>
-              <CompRow label="Targets"    v2024={a24?.targets}          v2025={a25?.targets}           v2026={player.tgts} />
-              <CompRow label="Tgt Share"  v2024={null}                  v2025={null}                   v2026={player.targetShare} unit="%" />
-              <CompRow label="Receptions" v2024={a24?.receptions}       v2025={a25?.receptions}        v2026={player.receptions} />
-              <CompRow label="Rec Yards"  v2024={a24?.receiving_yards}  v2025={a25?.receiving_yards}   v2026={player.recYds} />
-              <CompRow label="Rec TDs"    v2024={a24?.receiving_tds}    v2025={a25?.receiving_tds}     v2026={player.recTds} />
-              <CompRow label="PPR Pts"    v2024={a24?.fantasy_ppr}      v2025={a25?.fantasy_ppr}       v2026={player.ppr} />
+            {(pos==='WR'||pos==='TE')&&<>
+              <CompRow label="Targets"    v24={a24?.targets}          v25={a25?.targets}          v26={player.tgts} isKey/>
+              <CompRow label="Tgt Share"  v24={null}                  v25={null}                  v26={player.targetShare} unit="%"/>
+              <CompRow label="Receptions" v24={a24?.receptions}       v25={a25?.receptions}       v26={player.receptions}/>
+              <CompRow label="Catch Rate" v24={a24?.catch_rate}       v25={a25?.catch_rate}       v26={null} unit="%"/>
+              <CompRow label="Rec Yards"  v24={a24?.receiving_yards}  v25={a25?.receiving_yards}  v26={player.recYds} isKey/>
+              <CompRow label="Yds/Target" v24={a24?.yards_per_target} v25={a25?.yards_per_target} v26={null}/>
+              <CompRow label="Yds/Rec"    v24={a24?.ypr}              v25={a25?.ypr}              v26={null}/>
+              <CompRow label="Rec TDs"    v24={a24?.receiving_tds}    v25={a25?.receiving_tds}    v26={player.recTds}/>
+              <CompRow label="Air Yards"  v24={a24?.air_yards}        v25={null}                  v26={null}/>
+              <CompRow label="YAC"        v24={a24?.yac}              v25={null}                  v26={null}/>
+              <CompRow label="PPR Pts"    v24={a24?.fantasy_ppr}      v25={a25?.fantasy_ppr}      v26={player.ppr} isKey/>
             </>}
-            {pos==='QB' && <>
-              <CompRow label="Pass Att"   v2024={a24?.pass_att}         v2025={a25?.pass_att}          v2026={player.passAtt} />
-              <CompRow label="Pass Yards" v2024={a24?.passing_yards}    v2025={a25?.passing_yards}     v2026={player.passYds} />
-              <CompRow label="Pass TDs"   v2024={a24?.passing_tds}      v2025={a25?.passing_tds}       v2026={player.passTds} />
-              <CompRow label="INTs"       v2024={a24?.interceptions}    v2025={a25?.interceptions}     v2026={player.ints} />
-              <CompRow label="Rush Yards" v2024={a24?.rushing_yards}    v2025={a25?.rushing_yards}     v2026={player.rushYds} />
-              <CompRow label="Rush TDs"   v2024={a24?.rushing_tds}      v2025={a25?.rushing_tds}       v2026={player.rushTds} />
-              <CompRow label="PPR Pts"    v2024={a24?.fantasy_ppr}      v2025={a25?.fantasy_ppr}       v2026={player.ppr} />
+            {pos==='QB'&&<>
+              <CompRow label="Pass Att"   v24={a24?.pass_att}         v25={a25?.pass_att}         v26={player.passAtt}/>
+              <CompRow label="Comp %"     v24={a24?.comp_pct}         v25={a25?.comp_pct}         v26={null} unit="%"/>
+              <CompRow label="Pass Yards" v24={a24?.passing_yards}    v25={a25?.passing_yards}    v26={player.passYds} isKey/>
+              <CompRow label="Yds/Att"    v24={a24?.ypa}              v25={a25?.ypa}              v26={null}/>
+              <CompRow label="Pass TDs"   v24={a24?.passing_tds}      v25={a25?.passing_tds}      v26={player.passTds} isKey/>
+              <CompRow label="INTs"       v24={a24?.interceptions}    v25={a25?.interceptions}    v26={player.ints}/>
+              <CompRow label="Rush Yards" v24={a24?.rushing_yards}    v25={a25?.rushing_yards}    v26={player.rushYds}/>
+              <CompRow label="Rush TDs"   v24={a24?.rushing_tds}      v25={a25?.rushing_tds}      v26={player.rushTds}/>
+              <CompRow label="PPR Pts"    v24={a24?.fantasy_ppr}      v25={a25?.fantasy_ppr}      v26={player.ppr} isKey/>
             </>}
           </div>
+
+          {/* Advanced metrics */}
+          {(pos==='WR'||pos==='TE')&&(a24?.wopr||a24?.yac)&&(
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">Advanced Metrics</div>
+              <div className="grid grid-cols-3 gap-3">
+                <AdvBox label="WOPR" v25={null} v24={a24?.wopr}/>
+                <AdvBox label="Air Yards" v25={null} v24={a24?.air_yards}/>
+                <AdvBox label="YAC" v25={null} v24={a24?.yac}/>
+                <AdvBox label="Catch Rate" v25={a25?.catch_rate} v24={a24?.catch_rate} unit="%"/>
+                <AdvBox label="Yds/Target" v25={a25?.yards_per_target} v24={a24?.yards_per_target}/>
+                <AdvBox label="Yds/Rec" v25={a25?.ypr} v24={a24?.ypr}/>
+              </div>
+            </div>
+          )}
+          {pos==='RB'&&(a24?.ypc||a25?.ypc)&&(
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">Advanced Metrics</div>
+              <div className="grid grid-cols-3 gap-3">
+                <AdvBox label="Yds/Carry" v25={a25?.ypc} v24={a24?.ypc}/>
+                <AdvBox label="Rush 1st Dns" v25={null} v24={a24?.rushing_first_downs}/>
+                <AdvBox label="Rec 1st Dns" v25={null} v24={a24?.receiving_first_downs}/>
+              </div>
+            </div>
+          )}
+          {pos==='QB'&&(a24?.comp_pct||a25?.comp_pct)&&(
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">Advanced Metrics</div>
+              <div className="grid grid-cols-3 gap-3">
+                <AdvBox label="Comp %" v25={a25?.comp_pct} v24={a24?.comp_pct} unit="%"/>
+                <AdvBox label="Yds/Att" v25={a25?.ypa} v24={a24?.ypa}/>
+                <AdvBox label="Air Yards" v25={null} v24={a24?.air_yards}/>
+              </div>
+            </div>
+          )}
 
           {/* Why */}
-          <div>
-            <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">Why We Project This</div>
-            <div className="space-y-2">
-              {lines.map((l,i) => <p key={i} className="text-sm text-slate-300 leading-relaxed">{l}</p>)}
-            </div>
-          </div>
-
-          {/* Tendency bars — including RB reception share */}
-          {team && (
+          {lines.length>0&&(
             <div>
-              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">
-                {team.playCaller} — Scheme Tendencies
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">Why We Project This</div>
+              <div className="space-y-2">
+                {lines.map((l,i)=><p key={i} className="text-sm text-slate-300 leading-relaxed">{l}</p>)}
               </div>
+            </div>
+          )}
+
+          {/* Tendency bars */}
+          {team&&(
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">{team.playCaller} — Scheme Tendencies</div>
               <div className="space-y-3">
                 {[
-                  { label:'RB1 Carry Share',     value:team.avgRbShare,    max:100, color:'bg-blue-500',   style:team.rbStyle,  hi:pos==='RB' },
-                  { label:'RB Reception Share',   value:team.avgRbRecShare, max:25,  color:'bg-sky-400',    style:'',            hi:pos==='RB' },
-                  { label:'TE Target Share',       value:team.avgTeShare,    max:42,  color:'bg-purple-500', style:team.teStyle,  hi:pos==='TE' },
-                  { label:'WR1 Target Share',     value:team.avgWr1Share,   max:42,  color:'bg-emerald-500',style:team.wr1Style, hi:pos==='WR' },
-                ].filter(t => t.value != null).map(({ label, value, max, color, style, hi }) => (
+                  {label:'RB1 Carry Share',   value:team.avgRbShare,    max:100,color:'bg-blue-500',   style:team.rbStyle, hi:pos==='RB'},
+                  {label:'RB Reception Share', value:team.avgRbRecShare, max:25, color:'bg-sky-400',    style:'',           hi:pos==='RB'},
+                  {label:'TE Target Share',    value:team.avgTeShare,    max:42, color:'bg-purple-500', style:team.teStyle, hi:pos==='TE'},
+                  {label:'WR1 Target Share',   value:team.avgWr1Share,   max:42, color:'bg-emerald-500',style:team.wr1Style,hi:pos==='WR'},
+                ].filter(t=>t.value!=null).map(({label,value,max,color,style,hi})=>(
                   <div key={label}>
-                    <div className={`flex justify-between text-xs mb-1 ${hi?'font-semibold text-white':''}`}>
+                    <div className={`flex justify-between text-xs mb-1 ${hi?'font-semibold':''}`}>
                       <span className={hi?'text-white':'text-slate-400'}>{label}</span>
-                      <span className={hi?'text-white':'text-slate-400'}>
-                        {value?.toFixed(1)}%{style ? ` · ${style}` : ''}
-                      </span>
+                      <span className={hi?'text-white':'text-slate-400'}>{value?.toFixed(1)}%{style?` · ${style}`:''}</span>
                     </div>
                     <div className={`h-1.5 rounded-full overflow-hidden ${hi?'bg-nfl-border':'bg-nfl-dark'}`}>
-                      <div className={`h-full rounded-full ${color} ${hi?'opacity-100':'opacity-40'}`}
-                           style={{width:`${Math.min((value/max)*100,100)}%`}} />
+                      <div className={`h-full rounded-full ${color} ${hi?'opacity-100':'opacity-35'}`}
+                           style={{width:`${Math.min((value/max)*100,100)}%`}}/>
                     </div>
                   </div>
                 ))}
               </div>
-              {team.notes && <p className="text-xs text-slate-500 mt-3 leading-relaxed">{team.notes}</p>}
-            </div>
-          )}
-
-          {/* ADP */}
-          {player.adp && (
-            <div className="bg-nfl-dark rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <div className="text-xs text-slate-500 mb-1">ESPN ADP</div>
-                <div className="text-2xl font-black text-white">#{player.adp}</div>
-                <div className="text-xs text-slate-400">{player.espnRound}</div>
-              </div>
-              {player.signal && (
-                <div className="text-right">
-                  <div className="text-xs text-slate-500 mb-1">Our Signal</div>
-                  <span className={`text-sm font-bold px-3 py-1 rounded-full border ${player.signal.bg} ${player.signal.color}`}>
-                    {player.signal.label}
-                  </span>
-                </div>
-              )}
+              {team.notes&&<p className="text-xs text-slate-500 mt-3 leading-relaxed">{team.notes}</p>}
             </div>
           )}
         </div>
