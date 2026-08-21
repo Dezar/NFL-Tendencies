@@ -1,4 +1,4 @@
-// Fantasy scoring settings and projection engine
+// Fantasy scoring + projection engine
 // Calibrated against 2025 actual NFL stats
 
 export const DEFAULT_SCORING = {
@@ -7,46 +7,66 @@ export const DEFAULT_SCORING = {
   recTd: 6, recYd: 0.1, reception: 1,  // PPR
   rec2pt: 2,
 }
-export const STD_SCORING = { ...DEFAULT_SCORING, reception: 0 }
+export const STD_SCORING    = { ...DEFAULT_SCORING, reception: 0 }
 export const HALF_PPR_SCORING = { ...DEFAULT_SCORING, reception: 0.5 }
+
+// QB-specific rushing profiles (from 2025 actuals + slight projection uptick)
+const QB_RUSH = {
+  'Josh Allen':      { rushYds: 610, rushTds: 14.5 },  // BUF monster rusher
+  'Jayden Daniels':  { rushYds: 450, rushTds: 6.5  },  // WAS
+  'Jalen Hurts':     { rushYds: 440, rushTds: 8.5  },  // PHI
+  'Caleb Williams':  { rushYds: 400, rushTds: 3.5  },  // CHI
+  'Bo Nix':          { rushYds: 375, rushTds: 5.5  },  // DEN
+  'Lamar Jackson':   { rushYds: 350, rushTds: 4.5  },  // BAL (injury-reduced 2025)
+  'Sam Darnold':     { rushYds: 280, rushTds: 3.0  },  // SEA
+  'Jaxson Dart':     { rushYds: 510, rushTds: 9.5  },  // NYG mobile
+  'Drake Maye':      { rushYds: 475, rushTds: 4.5  },  // NE
+  'Baker Mayfield':  { rushYds: 440, rushTds: 5.5  },  // TB
+  'Trevor Lawrence': { rushYds: 375, rushTds: 9.5  },  // JAX
+  'Patrick Mahomes': { rushYds: 440, rushTds: 5.5  },  // KC
+  'Bryce Young':     { rushYds: 220, rushTds: 2.0  },  // CAR
+  'Justin Herbert':  { rushYds: 350, rushTds: 1.5  },  // LAC
+  'Joe Burrow':      { rushYds: 115, rushTds: 1.5  },  // CIN pocket passer
+  'Kirk Cousins':    { rushYds: 120, rushTds: 1.0  },  // LV
+  'Matthew Stafford':{ rushYds: 30,  rushTds: 0.5  },  // LAR pocket passer
+  'Kyler Murray':    { rushYds: 480, rushTds: 5.0  },  // MIN
+  'C.J. Stroud':     { rushYds: 360, rushTds: 2.5  },  // HOU
+  'Jordan Love':     { rushYds: 210, rushTds: 0.5  },  // GB
+  'default':         { rushYds: 280, rushTds: 3.5  },
+}
 
 // Projection constants calibrated against 2025 actuals
 export const PROJECTION = {
   teamCarries: 430,
   teamPassAttempts: 570,
-  // WR - from 2025 actuals (n=9, min 80 targets)
   wrYardsPerTarget: 9.5,
   wrCatchRate: 0.682,
   wrTdPerTarget: 0.057,
-  // RB - from 2025 actuals (n=19, min 150 carries)
   rbYardsPerCarry: 4.65,
   rbTdPerCarry: 0.036,
-  rbTargetRate: 0.155,   // RB1 targets as share of team pass attempts
+  rbTargetRate: 0.155,
   rbYardsPerTarget: 8.2,
   rbCatchRate: 0.72,
   rbTdPerTarget: 0.038,
-  // TE - calibrated from 2024+2025 averages
   teYardsPerTarget: 7.9,
   teCatchRate: 0.735,
   teTdPerTarget: 0.060,
-  // QB
+  // QB passing efficiency
   qbYardsPerAttempt: 7.5,
-  qbTdPerAttempt: 0.050,
-  qbIntPerAttempt: 0.023,
-  qbRushYards: 300,      // avg includes mobile QBs
-  qbRushTds: 4.0,
+  qbTdPerAttempt: 0.048,
+  qbIntPerAttempt: 0.013,  // fixed: was 0.023 (too high)
   gamesPerSeason: 17,
 }
 
 export function calcPPR(stats, scoring = DEFAULT_SCORING) {
   return (
-    (stats.passYds   || 0) * scoring.passYd +
-    (stats.passTds   || 0) * scoring.passTd +
-    (stats.ints      || 0) * scoring.passInt +
-    (stats.rushYds   || 0) * scoring.rushYd +
-    (stats.rushTds   || 0) * scoring.rushTd +
-    (stats.receptions|| 0) * scoring.reception +
-    (stats.recYds    || 0) * scoring.recYd +
+    (stats.passYds   || 0) * scoring.passYd   +
+    (stats.passTds   || 0) * scoring.passTd   +
+    (stats.ints      || 0) * scoring.passInt  +
+    (stats.rushYds   || 0) * scoring.rushYd   +
+    (stats.rushTds   || 0) * scoring.rushTd   +
+    (stats.receptions|| 0) * scoring.reception+
+    (stats.recYds    || 0) * scoring.recYd    +
     (stats.recTds    || 0) * scoring.recTd
   )
 }
@@ -58,7 +78,6 @@ export function projectPlayer(player, team, scoring = DEFAULT_SCORING) {
   const rbShare  = team.avgRbShare  ?? 65
   const teShare  = team.avgTeShare  ?? 22
   const wr1Share = team.avgWr1Share ?? 23
-  const newCaller = team.newCaller ?? false
 
   // Pass attempts: run-heavy teams throw less
   const passAtt = Math.round(P.teamPassAttempts * (1 + (65 - rbShare) / 220))
@@ -67,16 +86,18 @@ export function projectPlayer(player, team, scoring = DEFAULT_SCORING) {
     const passYds = passAtt * P.qbYardsPerAttempt
     const passTds = passAtt * P.qbTdPerAttempt
     const ints    = passAtt * P.qbIntPerAttempt
-    const rushYds = P.qbRushYards
-    const rushTds = P.qbRushTds
+    // Use QB-specific rushing profile
+    const rushProfile = QB_RUSH[player.player_name] || QB_RUSH['default']
+    const rushYds = rushProfile.rushYds
+    const rushTds = rushProfile.rushTds
     const pts = calcPPR({ passYds, passTds, ints, rushYds, rushTds }, scoring)
+    const stdPts = calcPPR({ passYds, passTds, ints, rushYds, rushTds }, { ...scoring, reception: 0 })
     return {
       passAtt: Math.round(passAtt), passYds: Math.round(passYds),
       passTds: +passTds.toFixed(1), ints: +ints.toFixed(1),
       rushYds: Math.round(rushYds), rushTds: +rushTds.toFixed(1),
       carries: null, tgts: null, receptions: null, recYds: null, recTds: null, targetShare: null,
-      ppr: Math.round(pts),
-      std: Math.round(calcPPR({ passYds, passTds, ints, rushYds, rushTds }, { ...scoring, reception: 0 })),
+      ppr: Math.round(pts), std: Math.round(stdPts),
       floor: Math.round(pts * 0.78), ceiling: Math.round(pts * 1.25),
       gpPPR: +(pts / P.gamesPerSeason).toFixed(1),
     }
@@ -86,7 +107,7 @@ export function projectPlayer(player, team, scoring = DEFAULT_SCORING) {
     const split = depth === 1 ? rbShare / 100
       : depth === 2 ? (rbShare < 55 ? 0.30 : rbShare < 65 ? 0.20 : rbShare < 75 ? 0.11 : 0.05)
       : 0.03
-    const tgtRate = depth === 1 ? P.rbTargetRate : depth === 2 ? 0.065 : 0.018
+    const tgtRate    = depth === 1 ? P.rbTargetRate : depth === 2 ? 0.065 : 0.018
     const carries    = P.teamCarries * split
     const rushYds    = carries * P.rbYardsPerCarry
     const rushTds    = carries * P.rbTdPerCarry
@@ -148,7 +169,6 @@ export function projectPlayer(player, team, scoring = DEFAULT_SCORING) {
 }
 
 export function getTier(pos, ppr) {
-  // Tiers calibrated against 2025 actual scoring ranges
   const tiers = {
     QB:  [300, 370, 430],
     RB:  [160, 250, 340],
@@ -156,8 +176,8 @@ export function getTier(pos, ppr) {
     TE:  [110, 180, 260],
   }
   const [low, mid, high] = tiers[pos] || [150, 250, 350]
-  if (ppr >= high) return { label: 'Elite',   color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/30' }
-  if (ppr >= mid)  return { label: 'Starter', color: 'text-blue-400',    bg: 'bg-blue-400/10 border-blue-400/30' }
-  if (ppr >= low)  return { label: 'Flex',    color: 'text-amber-400',   bg: 'bg-amber-400/10 border-amber-400/30' }
-  return                  { label: 'Depth',   color: 'text-slate-500',   bg: 'bg-slate-500/10 border-slate-500/30' }
+  if (ppr >= high) return { label:'Elite',   color:'text-emerald-400', bg:'bg-emerald-400/10 border-emerald-400/30' }
+  if (ppr >= mid)  return { label:'Starter', color:'text-blue-400',    bg:'bg-blue-400/10 border-blue-400/30' }
+  if (ppr >= low)  return { label:'Flex',    color:'text-amber-400',   bg:'bg-amber-400/10 border-amber-400/30' }
+  return               { label:'Depth',   color:'text-slate-500',   bg:'bg-slate-500/10 border-slate-500/30' }
 }
