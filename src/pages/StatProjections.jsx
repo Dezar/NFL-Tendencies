@@ -7,6 +7,17 @@ import PlayerModal from '../components/PlayerModal'
 
 const POS_TABS = ['ALL','QB','RB','WR','TE']
 
+// Identify "hidden gem" situations from tendencies data
+const GEM_FLAGS = {}
+tendencies.teams.forEach(team => {
+  const isNewCaller = team.newCaller
+  ;(team.keyPlayers||[]).forEach(kp => {
+    const flags = []
+    if (isNewCaller) flags.push('New Play-Caller')
+    GEM_FLAGS[`${team.team}_${kp.name}`] = flags
+  })
+})
+
 function SortHeader({ label, field, sortBy, sortDir, onSort, center }) {
   const active = sortBy === field
   return (
@@ -33,6 +44,7 @@ export default function StatProjections() {
   const [depthMax, setDepthMax] = useState(2)
   const [sortBy, setSortBy] = useState('ppr')
   const [sortDir, setSortDir] = useState('desc')
+  const [situationFilter, setSituationFilter] = useState('all')
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [selectedTeamData, setSelectedTeamData] = useState(null)
   const [scoringPreset, setScoringPreset] = useState(0)
@@ -59,6 +71,7 @@ export default function StatProjections() {
           playCaller: team.playCaller || '?',
           rbSeasons: team.rbSeasons ?? 0,
           newCaller: team.newCaller ?? false,
+          rbSeasons: team.rbSeasons ?? 0,
           rbStyle: team.rbStyle, teStyle: team.teStyle, wr1Style: team.wr1Style,
         }
       })
@@ -76,13 +89,20 @@ export default function StatProjections() {
         if (posFilter !== 'ALL' && p.position !== posFilter) return false
         if (teamFilter !== 'ALL' && p.team !== teamFilter) return false
         if (tierFilter !== 'ALL' && getTier(p.position, p.ppr).label !== tierFilter) return false
+        if (situationFilter === 'new_caller' && !p.newCaller) return false
+        if (situationFilter === 'rookie' && (p.years_exp == null || p.years_exp > 0)) return false
+        if (situationFilter === 'new_team') {
+          // Flag players whose 2025 team differs from 2026 team (rough heuristic)
+          // We'll use years_exp > 0 and newCaller as proxy
+          if (!p.newCaller && p.years_exp == null) return false
+        }
         return true
       })
       .sort((a, b) => {
         const av = a[sortBy] ?? 0, bv = b[sortBy] ?? 0
         return sortDir === 'desc' ? bv - av : av - bv
       })
-  }, [allProjected, posFilter, teamFilter, tierFilter, sortBy, sortDir])
+  }, [allProjected, posFilter, teamFilter, tierFilter, sortBy, sortDir, situationFilter])
 
   const teams = useMemo(() => ['ALL', ...new Set(rostersData.players.map(p => p.team).sort())], [])
   const summary = useMemo(() => ({
@@ -218,6 +238,20 @@ export default function StatProjections() {
           className="bg-nfl-card border border-nfl-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none">
           {teams.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
+        {/* Situation / Gem filter */}
+        <div className="flex gap-1">
+          {[
+            { val:'all',        label:'All Situations' },
+            { val:'new_caller', label:'🆕 New Play-Caller' },
+            { val:'rookie',     label:'🌟 Rookie (0yr)' },
+            { val:'new_team',   label:'🔄 New Team' },
+          ].map(({val, label}) => (
+            <button key={val} onClick={() => setSituationFilter(val)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                situationFilter===val?'bg-amber-500 text-black':'bg-nfl-card border border-nfl-border text-slate-400 hover:text-white'
+              }`}>{label}</button>
+          ))}
+        </div>
         <button onClick={exportCSV}
           className="px-3 py-1.5 bg-nfl-card border border-nfl-border rounded-lg text-xs text-slate-300 hover:text-white ml-auto">
           ↓ CSV
@@ -258,7 +292,13 @@ export default function StatProjections() {
                   onClick={() => { setSelectedPlayer(p); setSelectedTeamData(teamMap[p.team] || null) }}
                   className={`border-b border-nfl-border/40 hover:bg-nfl-blue/5 cursor-pointer transition-colors ${tier.label==='Elite'?'bg-emerald-400/[0.02]':''}`}>
                   <td className="px-3 py-2.5 text-xs text-slate-500 text-center">{i+1}</td>
-                  <td className="px-3 py-2.5 font-semibold text-white hover:text-nfl-blue">{p.player_name}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-white hover:text-nfl-blue">{p.player_name}</span>
+                      {p.newCaller && <span className="text-xs bg-amber-500/20 text-amber-400 px-1 rounded font-bold">NEW</span>}
+                      {(p.years_exp===0||p.years_exp==='0') && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-1 rounded font-bold">RC</span>}
+                    </div>
+                  </td>
                   <td className="px-3 py-2.5 text-center">
                     <span className="text-xs font-bold bg-nfl-border/50 text-slate-300 px-1.5 py-0.5 rounded">{p.position}</span>
                   </td>
