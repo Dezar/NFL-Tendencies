@@ -4,6 +4,10 @@ import { getTier, DEFAULT_SCORING } from '../engine/scoring'
 import stats2024data from '../data/stats_2024.json'
 import stats2025data from '../data/stats_2025.json'
 import tendencies from '../data/tendencies.json'
+import injuryData from '../data/injuries.json'
+
+const INJURY_MAP = {}
+injuryData.injuries.forEach(p => { INJURY_MAP[p.player_name] = p })
 
 const S24 = {}
 stats2024data.players.forEach(p => { S24[p.player_name] = p })
@@ -157,6 +161,19 @@ export default function PlayerModal({ player, team, onClose, scoring=DEFAULT_SCO
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white ml-4 flex-shrink-0"><X size={20}/></button>
           </div>
+          {/* Injury banner */}
+          {INJURY_MAP[player.player_name] && (
+            <div className={`mx-6 mb-3 px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between ${
+              INJURY_MAP[player.player_name].status === 'IR' || INJURY_MAP[player.player_name].status === 'OUT'
+                ? 'bg-red-500/10 border border-red-500/30 text-red-300'
+                : INJURY_MAP[player.player_name].status === 'Q'
+                ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+                : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+            }`}>
+              <span>🏥 {INJURY_MAP[player.player_name].note}</span>
+              <span className="font-bold ml-2">{INJURY_MAP[player.player_name].status_label}</span>
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-5 space-y-6">
