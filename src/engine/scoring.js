@@ -58,6 +58,32 @@ export const PROJECTION = {
   gamesPerSeason: 17,
 }
 
+// Year-2 leap and rookie discount factors
+// Applied as a multiplier on top of scheme projections
+const EXPERIENCE_MULT = {
+  // 2nd year players (were rookies in 2025) - year-2 leap
+  'Ashton Jeanty':          1.35,
+  'Jaxson Dart':            1.35,
+  'Omarion Hampton':        1.30,
+  'Tetairoa McMillan':      1.28,
+  'Tyler Warren':           1.28,
+  'Cam Skattebo':           1.25,
+  'Emeka Egbuka':           1.25,
+  'Colston Loveland':       1.25,
+  'Cam Ward':               1.25,
+  'Luther Burden III':      1.22,
+  'Harold Fannin Jr.':      1.22,
+  'Oronde Gadsden II':      1.20,
+  'Shedeur Sanders':        1.20,
+  'Gunnar Helm':            1.18,
+  'Jacory Croskey-Merritt': 1.15,
+  'Bhayshul Tuten':         1.15,
+  'Tyler Shough':           1.15,
+  // 2026 true rookies - learning curve discount
+  'Jeremiyah Love':         0.75,
+  'Carnell Tate':           0.70,
+}
+
 export function calcPPR(stats, scoring = DEFAULT_SCORING) {
   return (
     (stats.passYds   || 0) * scoring.passYd   +
@@ -166,6 +192,32 @@ export function projectPlayer(player, team, scoring = DEFAULT_SCORING) {
   }
 
   return { ppr: 0, std: 0, floor: 0, ceiling: 0, gpPPR: 0 }
+}
+
+// Apply experience adjustment to a projection result
+export function applyExperience(playerName, proj) {
+  const mult = EXPERIENCE_MULT[playerName]
+  if (!mult || mult === 1) return proj
+  const isLeap = mult > 1
+  return {
+    ...proj,
+    ppr:     Math.round(proj.ppr     * mult),
+    std:     Math.round(proj.std     * mult),
+    floor:   Math.round(proj.floor   * mult),
+    ceiling: Math.round(proj.ceiling * mult),
+    gpPPR:   +(proj.gpPPR * mult).toFixed(1),
+    carries:    proj.carries    ? Math.round(proj.carries    * mult) : null,
+    rushYds:    proj.rushYds    ? Math.round(proj.rushYds    * mult) : null,
+    rushTds:    proj.rushTds    ? +(proj.rushTds    * mult).toFixed(1) : null,
+    tgts:       proj.tgts       ? Math.round(proj.tgts       * mult) : null,
+    receptions: proj.receptions ? Math.round(proj.receptions * mult) : null,
+    recYds:     proj.recYds     ? Math.round(proj.recYds     * mult) : null,
+    recTds:     proj.recTds     ? +(proj.recTds     * mult).toFixed(1) : null,
+    passYds:    proj.passYds    ? Math.round(proj.passYds    * mult) : null,
+    passTds:    proj.passTds    ? +(proj.passTds    * mult).toFixed(1) : null,
+    expMult: mult,
+    expLabel: mult > 1 ? `Year-2 leap (+${Math.round((mult-1)*100)}%)` : `Rookie discount (-${Math.round((1-mult)*100)}%)`,
+  }
 }
 
 export function getTier(pos, ppr) {
