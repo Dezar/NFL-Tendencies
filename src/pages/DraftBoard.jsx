@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
-import { projectPlayer, getTier, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING } from '../engine/scoring'
+import { projectPlayer, getTier, applyExperience, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING } from '../engine/scoring'
 import tendencies from '../data/tendencies.json'
 import rostersData from '../data/rosters_2026.json'
 import injuryData from '../data/injuries.json'
@@ -90,7 +90,8 @@ export default function DraftBoard() {
       .filter(p => p.depth_rank === 1 && ['QB','RB','WR','TE'].includes(p.position))
       .forEach(p => {
         const team = teamMap[p.team] || {}
-        const proj = projectPlayer(p, team, scoring)
+        const projRaw = projectPlayer(p, team, scoring)
+        const proj = applyExperience(p.player_name, projRaw)
         if (proj.ppr > 0) {
           byPos[p.position].push({
             ...p, ...proj,
