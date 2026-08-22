@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, Settings } from 'lucide-react'
-import { projectPlayer, getTier, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING, calcPPR } from '../engine/scoring'
+import { projectPlayer, getTier, applyExperience, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING, calcPPR } from '../engine/scoring'
 import tendencies from '../data/tendencies.json'
 import rostersData from '../data/rosters_2026.json'
 import injuryData from '../data/injuries.json'
@@ -74,12 +74,15 @@ export default function StatProjections() {
       .filter(p => p.depth_rank <= depthMax)
       .map(p => {
         const team = teamMap[p.team] || {}
-        const proj = projectPlayer(p, team, scoring)
+        const projRaw = projectPlayer(p, team, scoring)
+        const proj = applyExperience(p.player_name, projRaw)
         return {
           ...p, ...proj,
           playCaller: team.playCaller || '?',
           rbSeasons: team.rbSeasons ?? 0,
           newCaller: team.newCaller ?? false,
+          expLabel: proj.expLabel || null,
+          expMult: proj.expMult || 1,
           injury: INJURY_MAP[p.player_name] || INJURY_MAP[`${p.team}_${p.player_name}`] || null,
           rbSeasons: team.rbSeasons ?? 0,
           rbStyle: team.rbStyle, teStyle: team.teStyle, wr1Style: team.wr1Style,
@@ -310,6 +313,8 @@ export default function StatProjections() {
                       {p.injury?.status==='OUT' && <span className="text-xs bg-red-500/20 text-red-400 px-1 rounded font-bold">OUT</span>}
                       {p.injury?.status==='Q' && <span className="text-xs bg-amber-500/20 text-amber-400 px-1 rounded font-bold">Q</span>}
                       {p.injury?.status==='ACTIVE' && p.injury?.status_label && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-1 rounded font-bold" title={p.injury.note}>{p.injury.status_label}</span>}
+                      {p.expMult>1 && <span className="text-xs bg-purple-500/20 text-purple-400 px-1 rounded font-bold" title={p.expLabel}>Y2</span>}
+                      {p.expMult<1 && <span className="text-xs bg-orange-500/20 text-orange-400 px-1 rounded font-bold" title={p.expLabel}>RC</span>}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-center">
