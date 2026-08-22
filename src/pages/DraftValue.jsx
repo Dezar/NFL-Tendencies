@@ -1,324 +1,239 @@
 import React, { useState, useMemo } from 'react'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { projectPlayer, getTier, applyExperience, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING } from '../engine/scoring'
 import tendencies from '../data/tendencies.json'
 import rostersData from '../data/rosters_2026.json'
+import stats2025data from '../data/stats_2025.json'
+import injuryData from '../data/injuries.json'
+import PlayerModal from '../components/PlayerModal'
 
-// ─── PROJECTION ENGINE (same as StatProjections) ─────────────────────────────
+// ── Lookups ───────────────────────────────────────────────────────────────────
+const S25 = {}
+stats2025data.players.forEach(p => { S25[p.player_name] = p })
+const INJURY_MAP = {}
+injuryData.injuries.forEach(p => { INJURY_MAP[p.player_name] = p })
 
-const LEAGUE = {
-  teamCarries: 430, teamPassAttempts: 575,
-  yardsPerCarry: 4.4, yardsPerTarget: 8.0,
-  catchRate: 0.67, tdPerCarry: 0.043, tdPerTarget: 0.056,
-}
-const SCORING = { rushYd: 0.1, recYd: 0.1, rushTd: 6, recTd: 6, rec: 1, passTd: 4, passYd: 0.04, passInt: -2 }
-
-function projectPPR(player, team) {
-  const pos = player.position
-  const depth = player.depth_rank
-  const rbShare = team.avgRbShare ?? 65
-  const teShare = team.avgTeShare ?? 22
-  const wr1Share = team.avgWr1Share ?? 23
-
-  if (pos === 'QB' && depth === 1) {
-    const passYds = LEAGUE.teamPassAttempts * 7.4
-    const passTds = LEAGUE.teamPassAttempts * 0.048
-    const ints = LEAGUE.teamPassAttempts * 0.024
-    return Math.round(
-      (passYds * SCORING.passYd) + (passTds * SCORING.passTd) +
-      (ints * SCORING.passInt) + (280 * SCORING.rushYd) + (3.5 * SCORING.rushTd)
-    )
-  }
-  if (pos === 'RB') {
-    const split = depth === 1 ? (rbShare/100)
-      : depth === 2 ? (rbShare < 55 ? 0.28 : rbShare < 65 ? 0.18 : rbShare < 75 ? 0.10 : 0.05)
-      : 0.03
-    const tgtPct = depth === 1 ? 0.17 : depth === 2 ? 0.07 : 0.02
-    const car = LEAGUE.teamCarries * split
-    const rushYd = car * LEAGUE.yardsPerCarry
-    const rushTd = car * LEAGUE.tdPerCarry
-    const tgts = LEAGUE.teamPassAttempts * tgtPct
-    const rec = tgts * LEAGUE.catchRate
-    const recYd = tgts * LEAGUE.yardsPerTarget
-    const recTd = tgts * LEAGUE.tdPerTarget
-    return Math.round(
-      (rushYd*SCORING.rushYd)+(rushTd*SCORING.rushTd)+(rec*SCORING.rec)+(recYd*SCORING.recYd)+(recTd*SCORING.recTd)
-    )
-  }
-  if (pos === 'WR') {
-    const shareMap = { 1: wr1Share, 2: wr1Share*0.55, 3: wr1Share*0.32 }
-    const tgtShareP = shareMap[depth] ?? wr1Share*0.18
-    const tgts = LEAGUE.teamPassAttempts * (tgtShareP/100)
-    const rec = tgts * LEAGUE.catchRate
-    const recYd = tgts * LEAGUE.yardsPerTarget
-    const recTd = tgts * LEAGUE.tdPerTarget
-    return Math.round((rec*SCORING.rec)+(recYd*SCORING.recYd)+(recTd*SCORING.recTd))
-  }
-  if (pos === 'TE') {
-    const depthSplit = depth === 1 ? 0.84 : depth === 2 ? 0.13 : 0.03
-    const tgts = LEAGUE.teamPassAttempts * (teShare/100) * depthSplit
-    const rec = tgts * (LEAGUE.catchRate + 0.04)
-    const recYd = tgts * (LEAGUE.yardsPerTarget - 1.1)
-    const recTd = tgts * (LEAGUE.tdPerTarget + 0.012)
-    return Math.round((rec*SCORING.rec)+(recYd*SCORING.recYd)+(recTd*SCORING.recTd))
-  }
-  return 0
-}
-
-// ─── ESPN ADP DATA (2026 PPR — sourced from ESPN/FantasyPros August 2026) ────
-// ADP = average draft position in a 12-team PPR league
-// We store these as our best knowledge; user can update via the editor below
-
+// ── ESPN ADP (12-team PPR, August 2026) ──────────────────────────────────────
 const ESPN_ADP = {
-  // QBs
-  'Josh Allen': { adp: 4, espnRank: 4 },
-  'Lamar Jackson': { adp: 6, espnRank: 6 },
-  'Jalen Hurts': { adp: 18, espnRank: 18 },
-  'Jayden Daniels': { adp: 22, espnRank: 22 },
-  'Joe Burrow': { adp: 35, espnRank: 35 },
-  'Kyler Murray': { adp: 42, espnRank: 42 },
-  'Brock Purdy': { adp: 48, espnRank: 48 },
-  'Patrick Mahomes': { adp: 52, espnRank: 52 },
-  'Justin Herbert': { adp: 58, espnRank: 58 },
-  'Bo Nix': { adp: 88, espnRank: 88 },
-  'Jaxson Dart': { adp: 102, espnRank: 102 },
-  'Caleb Williams': { adp: 65, espnRank: 65 },
-  'Kirk Cousins': { adp: 120, espnRank: 120 },
-  // RBs
-  'Saquon Barkley': { adp: 1, espnRank: 1 },
-  'Christian McCaffrey': { adp: 3, espnRank: 3 },
-  'Ashton Jeanty': { adp: 5, espnRank: 5 },
-  'Jahmyr Gibbs': { adp: 7, espnRank: 7 },
-  'Jonathan Taylor': { adp: 9, espnRank: 9 },
-  'Omarion Hampton': { adp: 11, espnRank: 11 },
-  'De\'Von Achane': { adp: 13, espnRank: 13 },
-  'Kenneth Walker III': { adp: 19, espnRank: 19 },
-  'James Cook III': { adp: 24, espnRank: 24 },
-  'Bijan Robinson': { adp: 27, espnRank: 27 },
-  'D\'Andre Swift': { adp: 38, espnRank: 38 },
-  'Chase Brown': { adp: 44, espnRank: 44 },
-  'Derrick Henry': { adp: 46, espnRank: 46 },
-  'Aaron Jones Sr.': { adp: 62, espnRank: 62 },
-  'Breece Hall': { adp: 29, espnRank: 29 },
-  'Cam Skattebo': { adp: 55, espnRank: 55 },
-  'Rachaad White': { adp: 72, espnRank: 72 },
-  'Isiah Pacheco': { adp: 80, espnRank: 80 },
-  'Justice Hill': { adp: 145, espnRank: 145 },
-  'Kyle Monangai': { adp: 130, espnRank: 130 },
-  'Jacory Croskey-Merritt': { adp: 95, espnRank: 95 },
-  // WRs
-  'Ja\'Marr Chase': { adp: 2, espnRank: 2 },
-  'Justin Jefferson': { adp: 8, espnRank: 8 },
-  'CeeDee Lamb': { adp: 10, espnRank: 10 },
-  'Malik Nabers': { adp: 12, espnRank: 12 },
-  'Puka Nacua': { adp: 14, espnRank: 14 },
-  'Amon-Ra St. Brown': { adp: 16, espnRank: 16 },
-  'Jaxon Smith-Njigba': { adp: 20, espnRank: 20 },
-  'Tyreek Hill': { adp: 23, espnRank: 23 },
-  'DJ Moore': { adp: 26, espnRank: 26 },
-  'Zay Flowers': { adp: 31, espnRank: 31 },
-  'Tee Higgins': { adp: 33, espnRank: 33 },
-  'Rome Odunze': { adp: 36, espnRank: 36 },
-  'Ladd McConkey': { adp: 39, espnRank: 39 },
-  'Stefon Diggs': { adp: 43, espnRank: 43 },
-  'Brian Thomas Jr.': { adp: 47, espnRank: 47 },
-  'Rashee Rice': { adp: 50, espnRank: 50 },
-  'Terry McLaurin': { adp: 54, espnRank: 54 },
-  'Courtland Sutton': { adp: 60, espnRank: 60 },
-  'Mike Evans': { adp: 63, espnRank: 63 },
-  'George Pickens': { adp: 68, espnRank: 68 },
-  'Xavier Worthy': { adp: 75, espnRank: 75 },
-  'Jordan Addison': { adp: 78, espnRank: 78 },
-  'Luther Burden III': { adp: 82, espnRank: 82 },
-  'Khalil Shakir': { adp: 85, espnRank: 85 },
-  'Jameson Williams': { adp: 90, espnRank: 90 },
-  'Rashod Bateman': { adp: 148, espnRank: 148 },
-  'Quentin Johnston': { adp: 118, espnRank: 118 },
-  // TEs
-  'Sam LaPorta': { adp: 15, espnRank: 15 },
-  'Travis Kelce': { adp: 17, espnRank: 17 },
-  'Brock Bowers': { adp: 21, espnRank: 21 },
-  'Mark Andrews': { adp: 25, espnRank: 25 },
-  'T.J. Hockenson': { adp: 32, espnRank: 32 },
-  'George Kittle': { adp: 34, espnRank: 34 },
-  'Isaiah Likely': { adp: 49, espnRank: 49 },
-  'Trey McBride': { adp: 53, espnRank: 53 },
-  'Colston Loveland': { adp: 57, espnRank: 57 },
-  'Dalton Kincaid': { adp: 70, espnRank: 70 },
-  'David Njoku': { adp: 76, espnRank: 76 },
-  'Cole Kmet': { adp: 92, espnRank: 92 },
-  'Oronde Gadsden': { adp: 98, espnRank: 98 },
-  'Chig Okonkwo': { adp: 110, espnRank: 110 },
-  'Pat Freiermuth': { adp: 115, espnRank: 115 },
+  'Saquon Barkley':1,"Ja'Marr Chase":2,'Christian McCaffrey':3,'Josh Allen':4,
+  'Ashton Jeanty':5,'Lamar Jackson':6,'Jahmyr Gibbs':7,'Justin Jefferson':8,
+  'Jonathan Taylor':9,'CeeDee Lamb':10,'Omarion Hampton':11,'Malik Nabers':12,
+  "De'Von Achane":13,'Puka Nacua':14,'Sam LaPorta':15,'Amon-Ra St. Brown':16,
+  'Jalen Hurts':18,'Kenneth Walker III':19,'Jaxon Smith-Njigba':20,
+  'Brock Bowers':21,'Jayden Daniels':22,'DJ Moore':26,'Malik Washington':95,
+  'Ladd McConkey':39,'Brian Thomas Jr.':47,'Bijan Robinson':27,'Breece Hall':29,
+  'Travis Kelce':17,'Mark Andrews':25,'George Kittle':34,'Derrick Henry':46,
+  'James Cook III':24,'Josh Jacobs':62,'Chase Brown':44,'Kyren Williams':48,
+  'Cam Skattebo':55,'Rico Dowdle':72,'TreVeyon Henderson':80,
+  "Aaron Jones Sr.":62,'Zay Flowers':31,'Stefon Diggs':43,
+  'Terry McLaurin':54,'George Pickens':68,'Tee Higgins':33,
+  'Drake London':78,'Davante Adams':85,'Rashee Rice':50,
+  'Rome Odunze':36,'Colston Loveland':57,'T.J. Hockenson':32,'Kyle Pitts':70,
+  'Courtland Sutton':60,'Xavier Worthy':75,'DeVonta Smith':55,
+  'Javonte Williams':80,'Zach Charbonnet':42,'Isaiah Likely':49,
+  'Trey McBride':53,'Pat Freiermuth':115,'David Njoku':76,'Tyler Warren':78,
+  "D'Andre Swift":38,'Breece Hall':29,'Jaylen Warren':88,
+  'Jaxson Dart':102,'Bo Nix':88,'Baker Mayfield':63,'Brock Purdy':48,
+  'Trevor Lawrence':58,'Kyler Murray':42,'Caleb Williams':65,'Drake Maye':35,
+  'Matthew Stafford':38,'Sam Darnold':90,'Jordan Love':55,'C.J. Stroud':80,
+  'Patrick Mahomes':52,'Luther Burden III':82,'Blake Corum':120,
+  'Tetairoa McMillan':65,'Emeka Egbuka':90,'Tyler Warren':78,
+  'Harold Fannin Jr.':110,'Cam Ward':95,'Jayden Daniels':22,
+  'Jeremiyah Love':75,'Omarion Hampton':11,
 }
 
-// ─── VALUE CALCULATION ────────────────────────────────────────────────────────
+// ── League settings ───────────────────────────────────────────────────────────
+// Your league: 12 teams, 1QB 2RB 2WR 2FLEX 1TE 1K 1DST
+const REPLACEMENT_RANK = { QB:13, RB:37, WR:37, TE:13 }
 
-// Convert our PPR projection to an implied rank within position
-function getOurRank(player, allByPos) {
-  const sorted = [...allByPos].sort((a,b) => b.ppr - a.ppr)
-  return sorted.findIndex(p => p.player_name === player.player_name) + 1
-}
+const SCORING_PRESETS = [
+  { label:'PPR',      scoring: DEFAULT_SCORING },
+  { label:'Half PPR', scoring: HALF_PPR_SCORING },
+  { label:'Standard', scoring: STD_SCORING },
+]
 
-// ADP to round (12-team)
 function adpToRound(adp) {
-  if (!adp) return '—'
-  return `Rd ${Math.ceil(adp/12)}.${((adp-1)%12)+1}`
+  if (!adp) return null
+  return `R${Math.ceil(adp/12)}.${((adp-1)%12)+1}`
+}
+
+function SortTh({ label, field, sortBy, sortDir, onSort }) {
+  const active = sortBy === field
+  return (
+    <th onClick={() => onSort(field)}
+      className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide cursor-pointer hover:text-white select-none text-right whitespace-nowrap">
+      <div className="flex items-center justify-end gap-1">
+        {label}
+        {active ? sortDir==='desc'?<ChevronDown size={11}/>:<ChevronUp size={11}/> : <ChevronsUpDown size={11} className="opacity-25"/>}
+      </div>
+    </th>
+  )
 }
 
 // Value signal
-function valueSignal(ourPPR, adp, pos) {
-  if (!adp) return { label: 'Unranked', color: 'text-slate-400', bg: 'bg-slate-400/10 border-slate-400/20', icon: 'new' }
-  // Convert ADP to implied PPR pts using position baseline
-  // Rough mapping: ADP 1-12 = 250+ pts, scaling down
-  const impliedPts = Math.max(50, 300 - (adp * 1.8))
-  const diff = ourPPR - impliedPts
-  if (diff > 35) return { label: 'Strong Buy', color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/30', icon: 'up' }
-  if (diff > 15) return { label: 'Buy', color: 'text-green-400', bg: 'bg-green-400/10 border-green-400/30', icon: 'up' }
-  if (diff < -35) return { label: 'Avoid', color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/30', icon: 'down' }
-  if (diff < -15) return { label: 'Sell', color: 'text-orange-400', bg: 'bg-orange-400/10 border-orange-400/30', icon: 'down' }
-  return { label: 'Fair Value', color: 'text-slate-300', bg: 'bg-slate-300/10 border-slate-300/20', icon: 'flat' }
+function valueBadge(vsEspn) {
+  if (vsEspn == null) return { label:'Unranked', cls:'text-slate-400 bg-slate-400/10 border-slate-400/20' }
+  if (vsEspn >= 60)  return { label:'🔥 Strong Buy', cls:'text-emerald-400 bg-emerald-400/10 border-emerald-400/30' }
+  if (vsEspn >= 25)  return { label:'✅ Buy',        cls:'text-green-400 bg-green-400/10 border-green-400/30' }
+  if (vsEspn <= -60) return { label:'❌ Avoid',      cls:'text-red-400 bg-red-400/10 border-red-400/30' }
+  if (vsEspn <= -25) return { label:'⚠️ Sell',       cls:'text-orange-400 bg-orange-400/10 border-orange-400/30' }
+  return { label:'Fair Value', cls:'text-slate-300 bg-slate-300/10 border-slate-300/20' }
 }
 
-// ─── COMPONENT ────────────────────────────────────────────────────────────────
-
-const POS_TABS = ['ALL','QB','RB','WR','TE']
-const VALUE_FILTERS = ['ALL','Strong Buy','Buy','Fair Value','Sell','Avoid','Unranked']
-
 export default function DraftValue() {
-  const [posFilter, setPosFilter] = useState('RB')
-  const [valueFilter, setValueFilter] = useState('ALL')
-  const [sortBy, setSortBy] = useState('value')
-  const [showOnlyRanked, setShowOnlyRanked] = useState(true)
+  const [posFilter, setPosFilter]   = useState('ALL')
+  const [sigFilter, setSigFilter]   = useState('ALL')
+  const [scoringIdx, setScoringIdx] = useState(0)
+  const [sortBy, setSortBy]         = useState('vor')
+  const [sortDir, setSortDir]       = useState('desc')
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [selectedTeam,   setSelectedTeamData] = useState(null)
 
-  const teamMap = useMemo(() => {
-    const m = {}
-    tendencies.teams.forEach(t => { m[t.team] = t })
-    return m
-  }, [])
+  const scoring = SCORING_PRESETS[scoringIdx].scoring
+  const teamMap = useMemo(() => { const m={}; tendencies.teams.forEach(t=>{m[t.team]=t}); return m },[])
 
-  // Project all starters (depth 1-2 only for draft relevance)
-  const allProjected = useMemo(() => {
-    return rostersData.players
-      .filter(p => p.depth_rank <= 2)
-      .map(p => {
+  // Project all depth-1 players
+  const projected = useMemo(() => {
+    const byPos = { QB:[], RB:[], WR:[], TE:[] }
+
+    rostersData.players
+      .filter(p => p.depth_rank === 1 && ['QB','RB','WR','TE'].includes(p.position))
+      .forEach(p => {
         const team = teamMap[p.team] || {}
-        const ppr = projectPPR(p, team)
-        const espn = ESPN_ADP[p.player_name] || null
-        const adp = espn?.adp || null
-        const signal = valueSignal(ppr, adp, p.position)
-        const diff = adp ? Math.round(ppr - Math.max(50, 300 - adp * 1.8)) : null
-        return {
-          ...p,
-          ppr,
-          adp,
-          espnRound: adpToRound(adp),
-          signal,
-          diff,
-          playCaller: team.playCaller || '?',
-          newCaller: team.newCaller || false,
-          rbSeasons: team.rbSeasons ?? 0,
-          rbStyle: team.rbStyle,
-          teStyle: team.teStyle,
-          wr1Style: team.wr1Style,
-        }
+        const projRaw = projectPlayer(p, team, scoring)
+        const proj = applyExperience(p.player_name, projRaw)
+        if (proj.ppr > 0) byPos[p.position].push({ ...p, ...proj,
+          playCaller: team.playCaller||'?', newCaller: team.newCaller||false,
+          rbStyle: team.rbStyle, avgRbShare: team.avgRbShare,
+          avgTeShare: team.avgTeShare, avgWr1Share: team.avgWr1Share,
+          injury: INJURY_MAP[p.player_name]||null,
+        })
       })
-      .filter(p => p.ppr > 0)
-  }, [teamMap])
 
-  // Position groups for rank calculation
-  const byPos = useMemo(() => {
-    const m = {}
-    POS_TABS.slice(1).forEach(pos => {
-      m[pos] = allProjected.filter(p => p.position === pos && p.depth_rank === 1)
+    const result = []
+    Object.entries(byPos).forEach(([pos, players]) => {
+      players.sort((a,b) => b.ppr-a.ppr)
+      const repRank = REPLACEMENT_RANK[pos]
+      const repPPR = players[repRank-1]?.ppr || (players[players.length-1]?.ppr - 20) || 150
+      players.forEach((p, i) => {
+        const adp = ESPN_ADP[p.player_name] || null
+        const vor = Math.round(p.ppr - repPPR)
+
+        // vs ESPN: how much more/less we project vs what ADP implies
+        // ADP 1 implies elite production, ADP 100+ implies waiver-wire value
+        const adpImpliedPPR = adp
+          ? Math.max(80, 520 - (adp * 3.8))
+          : null
+        const vsEspn = adpImpliedPPR ? Math.round(p.ppr - adpImpliedPPR) : null
+        const badge  = valueBadge(vsEspn)
+
+        // Is this a year-2 leap player not yet priced in?
+        const isSleeper = vsEspn != null && vsEspn >= 25 && adp > 30
+        const isAvoid   = vsEspn != null && vsEspn <= -25
+        const ppr2025   = S25[p.player_name]?.fantasy_ppr ?? null
+
+        result.push({ ...p, pos_rank:i+1, vor, repPPR,
+          adp, adpRound:adpToRound(adp), vsEspn, badge, isSleeper, isAvoid, ppr2025 })
+      })
     })
-    return m
-  }, [allProjected])
+    return result
+  }, [teamMap, scoring])
+
+  const handleSort = (f) => {
+    if (sortBy===f) setSortDir(d=>d==='desc'?'asc':'desc')
+    else { setSortBy(f); setSortDir('desc') }
+  }
 
   const filtered = useMemo(() => {
-    return allProjected
+    return projected
       .filter(p => {
-        if (posFilter !== 'ALL' && p.position !== posFilter) return false
-        if (valueFilter !== 'ALL' && p.signal.label !== valueFilter) return false
-        if (showOnlyRanked && !p.adp) return false
+        if (posFilter!=='ALL' && p.position!==posFilter) return false
+        if (sigFilter==='Buy'    && !p.isSleeper) return false
+        if (sigFilter==='Avoid'  && !p.isAvoid)   return false
+        if (sigFilter==='Year2'  && (p.expMult||1) <= 1) return false
+        if (sigFilter==='NewCaller' && !p.newCaller) return false
         return true
       })
-      .sort((a, b) => {
-        if (sortBy === 'value') return (b.diff ?? -999) - (a.diff ?? -999)
-        if (sortBy === 'ppr') return b.ppr - a.ppr
-        if (sortBy === 'adp') return (a.adp ?? 999) - (b.adp ?? 999)
-        if (sortBy === 'name') return a.player_name.localeCompare(b.player_name)
-        return 0
+      .sort((a,b) => {
+        const av = a[sortBy]??(sortDir==='desc'?-9999:9999)
+        const bv = b[sortBy]??(sortDir==='desc'?-9999:9999)
+        return sortDir==='desc'?bv-av:av-bv
       })
-  }, [allProjected, posFilter, valueFilter, sortBy, showOnlyRanked])
+  }, [projected, posFilter, sigFilter, sortBy, sortDir])
 
-  // Summary
-  const buys = allProjected.filter(p => p.adp && ['Strong Buy','Buy'].includes(p.signal.label))
-  const avoids = allProjected.filter(p => p.adp && ['Avoid','Sell'].includes(p.signal.label))
-  const unranked = allProjected.filter(p => !p.adp && p.depth_rank === 1)
-
-  const exportCSV = () => {
-    const headers = ['Player','Pos','Team','Depth','PlayCaller','OurPPR','OurRank','ESPN_ADP','ESPN_Round','ValueSignal','Diff','RbStyle','TeStyle']
-    const rows = filtered.map(p => [
-      p.player_name, p.position, p.team, p.depth_rank, p.playCaller,
-      p.ppr, '', p.adp??'Unranked', p.espnRound,
-      p.signal.label, p.diff??'', p.rbStyle??'', p.teStyle??''
-    ])
-    const csv = [headers,...rows].map(r=>r.join(',')).join('\n')
-    const blob = new Blob([csv],{type:'text/csv'})
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = 'nfl_draft_values_2026.csv'
-    a.click()
-  }
+  const buys   = projected.filter(p=>p.isSleeper)
+  const avoids = projected.filter(p=>p.isAvoid)
+  const year2  = projected.filter(p=>(p.expMult||1)>1)
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Draft Value Finder</h1>
         <p className="text-slate-400 text-sm">
-          Our scheme-based projections vs ESPN ADP. Find players being drafted too early or too late.
-          Rosters as of {rostersData.lastUpdated}.
+          Our scheme + year-2 leap projections vs ESPN ADP. Find players being drafted too early or too late
+          in your 12-team PPR league (1QB 2RB 2WR 2FLEX 1TE).
         </p>
       </div>
 
-      {/* Summary */}
+      {/* How to use this */}
+      <div className="bg-nfl-card border border-nfl-border rounded-xl p-5 mb-6">
+        <div className="text-sm font-semibold text-white mb-3">How to Use This Page</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-400">
+          <div className="space-y-1.5">
+            <div className="text-emerald-400 font-semibold">Finding Buys (undervalued)</div>
+            <p>Sort by <span className="text-white">vs ESPN</span> descending — players at the top are ones we project significantly higher than their ADP suggests. Big positive = draft 1-2 rounds earlier than ADP.</p>
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-red-400 font-semibold">Avoiding Overpays</div>
+            <p>Sort by <span className="text-white">vs ESPN</span> ascending — players at the top have the biggest gap where market prices them higher than our scheme model supports.</p>
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-purple-400 font-semibold">Year-2 Leap Targets</div>
+            <p>Filter <span className="text-white">Year-2</span> — these rookies from 2025 should take a big step forward in 2026 but may not be fully priced in by ESPN ADP yet.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-nfl-card border border-emerald-400/20 rounded-xl p-5">
-          <div className="text-3xl font-black text-emerald-400">{buys.length}</div>
-          <div className="text-sm text-slate-300 mt-1 font-medium">Strong Buys + Buys</div>
-          <div className="text-xs text-slate-500 mt-1">We project significantly higher than ADP</div>
-          <div className="mt-3 space-y-1">
-            {buys.slice(0,4).map(p => (
+        <div className="bg-nfl-card border border-emerald-400/20 rounded-xl p-4 cursor-pointer hover:border-emerald-400/40"
+             onClick={() => setSigFilter(sigFilter==='Buy'?'ALL':'Buy')}>
+          <div className="text-2xl font-black text-emerald-400">{buys.length}</div>
+          <div className="text-xs text-slate-300 font-medium mt-1">🔥 Buys / Sleepers</div>
+          <div className="text-xs text-slate-500 mt-0.5">We project significantly higher than ADP</div>
+          <div className="mt-2 space-y-0.5">
+            {buys.slice(0,3).map(p=>(
               <div key={p.player_name} className="flex justify-between text-xs">
-                <span className="text-slate-300">{p.player_name} <span className="text-slate-500">{p.position}</span></span>
-                <span className="text-emerald-400 font-semibold">ADP {p.adp}</span>
+                <span className="text-slate-300">{p.player_name.split(' ').pop()} <span className="text-slate-500">{p.position}</span></span>
+                <span className="text-emerald-400 font-semibold">+{p.vsEspn} vs ADP {p.adp}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-nfl-card border border-red-400/20 rounded-xl p-5">
-          <div className="text-3xl font-black text-red-400">{avoids.length}</div>
-          <div className="text-sm text-slate-300 mt-1 font-medium">Sells + Avoids</div>
-          <div className="text-xs text-slate-500 mt-1">Being drafted higher than scheme supports</div>
-          <div className="mt-3 space-y-1">
-            {avoids.slice(0,4).map(p => (
+        <div className="bg-nfl-card border border-red-400/20 rounded-xl p-4 cursor-pointer hover:border-red-400/40"
+             onClick={() => setSigFilter(sigFilter==='Avoid'?'ALL':'Avoid')}>
+          <div className="text-2xl font-black text-red-400">{avoids.length}</div>
+          <div className="text-xs text-slate-300 font-medium mt-1">❌ Avoids / Overpays</div>
+          <div className="text-xs text-slate-500 mt-0.5">ADP prices them higher than scheme supports</div>
+          <div className="mt-2 space-y-0.5">
+            {avoids.slice(0,3).map(p=>(
               <div key={p.player_name} className="flex justify-between text-xs">
-                <span className="text-slate-300">{p.player_name} <span className="text-slate-500">{p.position}</span></span>
-                <span className="text-red-400 font-semibold">ADP {p.adp}</span>
+                <span className="text-slate-300">{p.player_name.split(' ').pop()} <span className="text-slate-500">{p.position}</span></span>
+                <span className="text-red-400 font-semibold">{p.vsEspn} vs ADP {p.adp}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-nfl-card border border-amber-400/20 rounded-xl p-5">
-          <div className="text-3xl font-black text-amber-400">{unranked.length}</div>
-          <div className="text-sm text-slate-300 mt-1 font-medium">Unranked Starters</div>
-          <div className="text-xs text-slate-500 mt-1">Depth-1 players ESPN hasn't ranked yet</div>
-          <div className="mt-3 space-y-1">
-            {unranked.slice(0,4).map(p => (
+        <div className="bg-nfl-card border border-purple-400/20 rounded-xl p-4 cursor-pointer hover:border-purple-400/40"
+             onClick={() => setSigFilter(sigFilter==='Year2'?'ALL':'Year2')}>
+          <div className="text-2xl font-black text-purple-400">{year2.length}</div>
+          <div className="text-xs text-slate-300 font-medium mt-1">🚀 Year-2 Leapers</div>
+          <div className="text-xs text-slate-500 mt-0.5">2025 rookies projected to take big step forward</div>
+          <div className="mt-2 space-y-0.5">
+            {year2.sort((a,b)=>(b.expMult||1)-(a.expMult||1)).slice(0,3).map(p=>(
               <div key={p.player_name} className="flex justify-between text-xs">
-                <span className="text-slate-300">{p.player_name} <span className="text-slate-500">{p.position}</span></span>
-                <span className="text-amber-400 font-semibold">{Math.round(p.ppr)} pts</span>
+                <span className="text-slate-300">{p.player_name.split(' ').pop()} <span className="text-slate-500">{p.position}</span></span>
+                <span className="text-purple-400 font-semibold">{p.expLabel}</span>
               </div>
             ))}
           </div>
@@ -328,124 +243,135 @@ export default function DraftValue() {
       {/* Controls */}
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="flex gap-1">
-          {POS_TABS.map(pos => (
-            <button key={pos} onClick={() => setPosFilter(pos)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                posFilter === pos ? 'bg-nfl-blue text-white' : 'bg-nfl-card border border-nfl-border text-slate-400 hover:text-white'
-              }`}>{pos}</button>
+          {['ALL','QB','RB','WR','TE'].map(pos=>(
+            <button key={pos} onClick={()=>setPosFilter(pos)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${posFilter===pos?'bg-nfl-blue text-white':'bg-nfl-card border border-nfl-border text-slate-400 hover:text-white'}`}>
+              {pos}
+            </button>
           ))}
         </div>
-        <div className="flex gap-1 flex-wrap">
-          {VALUE_FILTERS.map(v => (
-            <button key={v} onClick={() => setValueFilter(v)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                valueFilter === v ? 'bg-nfl-purple text-white' : 'bg-nfl-card border border-nfl-border text-slate-400 hover:text-white'
-              }`}>{v}</button>
+        <div className="flex gap-1">
+          {[
+            ['ALL','All Players'],['Buy','🔥 Buys'],['Avoid','❌ Avoids'],
+            ['Year2','🚀 Year-2'],['NewCaller','🆕 New Caller'],
+          ].map(([val,label])=>(
+            <button key={val} onClick={()=>setSigFilter(val)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${sigFilter===val?'bg-nfl-purple text-white':'bg-nfl-card border border-nfl-border text-slate-400 hover:text-white'}`}>
+              {label}
+            </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer ml-auto">
-          <input type="checkbox" checked={showOnlyRanked} onChange={e => setShowOnlyRanked(e.target.checked)}
-            className="rounded" />
-          ESPN-ranked only
-        </label>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-          className="bg-nfl-card border border-nfl-border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none">
-          <option value="value">Sort: Best Value</option>
-          <option value="ppr">Sort: Our PPR</option>
-          <option value="adp">Sort: ESPN ADP</option>
-          <option value="name">Sort: Name</option>
-        </select>
-        <button onClick={exportCSV}
-          className="px-3 py-1.5 bg-nfl-card border border-nfl-border rounded-lg text-xs text-slate-300 hover:text-white">
-          ↓ Export CSV
-        </button>
+        <div className="flex gap-1 ml-auto">
+          {SCORING_PRESETS.map((p,i)=>(
+            <button key={p.label} onClick={()=>setScoringIdx(i)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${scoringIdx===i?'bg-nfl-purple text-white ring-1 ring-purple-400':'bg-nfl-card border border-nfl-border text-slate-400 hover:text-white'}`}>
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="text-xs text-slate-500 mb-3">{filtered.length} players</div>
+      <div className="text-xs text-slate-500 mb-3">
+        {filtered.length} players · Sort by "vs ESPN" to find value · Click player for full profile
+      </div>
 
       {/* Table */}
-      <div className="bg-nfl-card border border-nfl-border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-nfl-card border border-nfl-border rounded-xl overflow-x-auto">
+        <table className="w-full text-sm whitespace-nowrap">
           <thead>
             <tr className="border-b border-nfl-border">
-              <th className="px-4 py-3 text-left text-xs text-slate-400 font-medium uppercase tracking-wide">Player</th>
-              <th className="px-4 py-3 text-center text-xs text-slate-400 font-medium uppercase tracking-wide">Pos</th>
-              <th className="px-4 py-3 text-left text-xs text-slate-400 font-medium uppercase tracking-wide">Team / Scheme</th>
-              <th className="px-4 py-3 text-center text-xs text-slate-400 font-medium uppercase tracking-wide">Our PPR</th>
-              <th className="px-4 py-3 text-center text-xs text-slate-400 font-medium uppercase tracking-wide">ESPN ADP</th>
-              <th className="px-4 py-3 text-center text-xs text-slate-400 font-medium uppercase tracking-wide">Round</th>
-              <th className="px-4 py-3 text-left text-xs text-slate-400 font-medium uppercase tracking-wide">Value</th>
-              <th className="px-4 py-3 text-left text-xs text-slate-400 font-medium uppercase tracking-wide">Why</th>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-left w-8">#</th>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-left">Player</th>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-center">Pos</th>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-left">Team</th>
+              <SortTh label="Our PPR" field="ppr"        sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
+              <SortTh label="2025 PPR" field="ppr2025"   sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
+              <SortTh label="VOR"     field="vor"        sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
+              <SortTh label="ESPN ADP" field="adp"       sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-center">Round</th>
+              <SortTh label="vs ESPN" field="vsEspn"     sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-left">Signal</th>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase text-left">Why</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p, i) => {
-              const sig = p.signal
-              const schemeNote = p.position === 'RB' ? p.rbStyle
-                : p.position === 'TE' ? p.teStyle
-                : p.position === 'WR' ? p.wr1Style : null
+            {filtered.map((p,i) => {
+              const tier = getTier(p.position, p.ppr)
               return (
                 <tr key={`${p.team}-${p.player_name}`}
-                  className={`border-b border-nfl-border/40 hover:bg-white/[0.02] transition-colors ${
-                    sig.label === 'Strong Buy' ? 'bg-emerald-400/[0.03]' :
-                    sig.label === 'Avoid' ? 'bg-red-400/[0.02]' : ''
-                  }`}>
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-white">{p.player_name}</div>
-                    <div className="text-xs text-slate-500">
-                      #{p.depth_rank} · {p.playCaller}
-                      {p.newCaller && <span className="ml-1 text-amber-400">New</span>}
+                  onClick={()=>{setSelectedPlayer(p);setSelectedTeamData(teamMap[p.team]||null)}}
+                  className={`border-b border-nfl-border/25 hover:bg-nfl-blue/5 cursor-pointer transition-colors ${
+                    p.isSleeper?'bg-emerald-400/[0.02]':p.isAvoid?'bg-red-400/[0.02]':''}`}>
+                  <td className="px-3 py-2.5 text-xs text-slate-500">{i+1}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-white">{p.player_name}</span>
+                      {p.expMult>1  && <span className="text-xs bg-purple-500/20 text-purple-400 px-1 rounded font-bold" title={p.expLabel}>Y2</span>}
+                      {p.expMult<1  && <span className="text-xs bg-orange-500/20 text-orange-400 px-1 rounded font-bold">RC</span>}
+                      {p.newCaller  && <span className="text-xs bg-blue-500/20 text-blue-400 px-1 rounded font-bold">NEW</span>}
+                      {p.injury?.status==='IR'  && <span className="text-xs bg-red-500/20 text-red-400 px-1 rounded font-bold">IR</span>}
+                      {p.injury?.status==='OUT' && <span className="text-xs bg-red-500/20 text-red-400 px-1 rounded font-bold">OUT</span>}
+                      {p.injury?.status==='Q'   && <span className="text-xs bg-amber-500/20 text-amber-400 px-1 rounded font-bold">Q</span>}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-xs font-bold bg-nfl-border/50 text-slate-300 px-2 py-0.5 rounded">{p.position}</span>
+                  <td className="px-3 py-2.5 text-center">
+                    <span className="text-xs font-bold bg-nfl-border/50 text-slate-300 px-1.5 py-0.5 rounded">{p.position}</span>
+                    <div className="text-xs text-slate-600 mt-0.5">#{p.pos_rank}</div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="text-slate-300 font-medium text-sm">{p.team}</div>
-                    {schemeNote && <div className="text-xs text-slate-500 mt-0.5">{schemeNote}</div>}
+                  <td className="px-3 py-2.5 text-slate-300 font-medium">{p.team}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    <span className={`text-sm font-black ${tier.color}`}>{p.ppr}</span>
+                    {p.expMult>1 && <div className="text-xs text-purple-400">+{Math.round((p.expMult-1)*100)}% Y2</div>}
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-white font-black text-base">{p.ppr}</span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {p.adp
-                      ? <span className="text-slate-300 font-semibold">{p.adp}</span>
-                      : <span className="text-slate-600">—</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-center text-xs text-slate-400">{p.espnRound}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full border font-bold ${sig.bg} ${sig.color}`}>
-                      {sig.label === 'Strong Buy' ? '🔥 ' : sig.label === 'Buy' ? '✅ ' : sig.label === 'Avoid' ? '❌ ' : sig.label === 'Sell' ? '⚠️ ' : ''}
-                      {sig.label}
+                  <td className="px-3 py-2.5 text-right text-xs text-amber-300">{p.ppr2025 ?? '—'}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    <span className={`text-xs font-bold ${p.vor>=100?'text-emerald-400':p.vor>=50?'text-blue-400':p.vor>=0?'text-amber-400':'text-red-400'}`}>
+                      {p.vor>=0?'+':''}{p.vor}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-400 max-w-xs">
-                    {sig.label === 'Strong Buy' && `Scheme projects ${p.ppr} pts, ADP ${p.adp} undervalues`}
-                    {sig.label === 'Buy' && `Scheme-supported upside at ADP ${p.adp}`}
-                    {sig.label === 'Fair Value' && `ADP ${p.adp ?? '—'} matches scheme projection`}
-                    {sig.label === 'Sell' && `ADP ${p.adp} ahead of scheme support`}
-                    {sig.label === 'Avoid' && `Scheme doesn't support ADP ${p.adp} cost`}
-                    {sig.label === 'Unranked' && `Depth-1 starter not yet on ESPN radar`}
+                  <td className="px-3 py-2.5 text-right">
+                    {p.adp ? <span className="text-slate-300 font-semibold">{p.adp}</span> : <span className="text-slate-600">—</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-xs text-slate-500">{p.adpRound ?? '—'}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    {p.vsEspn != null
+                      ? <span className={`text-xs font-bold ${p.vsEspn>=60?'text-emerald-400 text-sm':p.vsEspn>=25?'text-emerald-400':p.vsEspn<=-60?'text-red-400 text-sm':p.vsEspn<=-25?'text-red-400':'text-slate-400'}`}>
+                          {p.vsEspn>=0?'+':''}{p.vsEspn}
+                        </span>
+                      : <span className="text-slate-600">—</span>}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${p.badge.cls}`}>
+                      {p.badge.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-slate-400 max-w-xs">
+                    {p.expMult>1
+                      ? p.expLabel
+                      : p.newCaller
+                      ? `New caller: ${p.playCaller}`
+                      : p.injury?.note
+                      ? p.injury.note
+                      : p.rbStyle || ''}
                   </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-slate-500">No players match that filter.</div>
-        )}
       </div>
 
-      <div className="mt-4 p-4 bg-nfl-card border border-nfl-border rounded-xl text-xs text-slate-500 leading-relaxed">
-        <span className="text-slate-300 font-semibold">How this works: </span>
-        Our PPR projection is built from the play-caller's historical tendency (RB share, TE usage, WR1 concentration)
-        applied to this season's depth chart. ESPN ADP reflects market consensus. 
-        A <span className="text-emerald-400">Strong Buy</span> means our scheme model projects significantly more production
-        than the market is pricing in — good targets to draft a round or two earlier than ADP suggests.
-        An <span className="text-red-400">Avoid</span> means the scheme doesn't support the cost.
+      <div className="mt-4 p-4 bg-nfl-card border border-nfl-border rounded-xl text-xs text-slate-500 space-y-1.5">
+        <p><span className="text-white font-semibold">VOR</span> = Value Over Replacement. Positive = better than what's on the waiver wire. Target players with high VOR at their ADP.</p>
+        <p><span className="text-white font-semibold">vs ESPN</span> = our projection minus what ESPN's ADP implies for that slot. <span className="text-emerald-400">Positive = undervalued by the market.</span> <span className="text-red-400">Negative = overvalued.</span></p>
+        <p><span className="text-purple-400 font-semibold">Y2</span> = Year-2 player (was a rookie in 2025). These projections include a leap factor based on historical year-over-year improvement rates.</p>
+        <p><span className="text-white font-semibold">Draft tip:</span> Sort "vs ESPN" desc and look for Green Flags at ADP 30+. Those are players you can get 2 rounds later than they're worth. Avoid players with large negative vs ESPN early in the draft.</p>
       </div>
+
+      {selectedPlayer && (
+        <PlayerModal player={selectedPlayer} team={selectedTeam} scoring={SCORING_PRESETS[scoringIdx].scoring}
+          onClose={()=>setSelectedPlayer(null)}/>
+      )}
     </div>
   )
 }
