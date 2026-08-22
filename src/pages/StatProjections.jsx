@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, Settings } from 'lucide-react'
 import { projectPlayer, getTier, DEFAULT_SCORING, HALF_PPR_SCORING, STD_SCORING, calcPPR } from '../engine/scoring'
 import tendencies from '../data/tendencies.json'
 import rostersData from '../data/rosters_2026.json'
+import injuryData from '../data/injuries.json'
 import PlayerModal from '../components/PlayerModal'
 
 const POS_TABS = ['ALL','QB','RB','WR','TE']
