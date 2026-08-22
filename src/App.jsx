@@ -1,14 +1,16 @@
 import React from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { BarChart2, Target, TrendingUp } from 'lucide-react'
+import { BarChart2, Target, TrendingUp, GitCompare } from 'lucide-react'
 import StatProjections from './pages/StatProjections'
 import DraftBoard from './pages/DraftBoard'
 import RBAnalysis from './pages/RBAnalysis'
+import Comparison from './pages/Comparison'
 
 const navItems = [
-  { to: '/', label: 'Stat Lines', icon: BarChart2 },
-  { to: '/draft', label: 'Draft Board', icon: Target },
-  { to: '/rb', label: 'RB Deep Dive', icon: TrendingUp },
+  { to: '/',           label: 'Stat Lines',  icon: BarChart2 },
+  { to: '/draft',      label: 'Draft Board', icon: Target },
+  { to: '/compare',    label: 'Sanity Check',icon: GitCompare },
+  { to: '/rb',         label: 'RB Dive',     icon: TrendingUp },
 ]
 
 export default function App() {
@@ -41,9 +43,10 @@ export default function App() {
       </header>
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
         <Routes>
-          <Route path="/" element={<StatProjections />} />
-          <Route path="/draft" element={<DraftBoard />} />
-          <Route path="/rb" element={<RBAnalysis />} />
+          <Route path="/"        element={<StatProjections />} />
+          <Route path="/draft"   element={<DraftBoard />} />
+          <Route path="/compare" element={<Comparison />} />
+          <Route path="/rb"      element={<RBAnalysis />} />
         </Routes>
       </main>
       <footer className="border-t border-nfl-border py-4 text-center text-xs text-slate-600">
