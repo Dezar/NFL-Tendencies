@@ -1,0 +1,66 @@
+{
+  "lastUpdated": "2026-08-21",
+  "note": "Manual injury tracking. Update as news breaks.",
+  "injuries": [
+    {
+      "player_name": "Zach Charbonnet",
+      "team": "SEA",
+      "position": "RB",
+      "status": "IR",
+      "status_label": "IR 8 wks",
+      "weeks_out": 8,
+      "expected_return": "Week 9",
+      "note": "Charbonnet IR \u2014 Jadarian Price steps in as SEA RB1",
+      "replacement": "Jadarian Price",
+      "depth_rank_override": 1
+    },
+    {
+      "player_name": "Jadarian Price",
+      "team": "SEA",
+      "position": "RB",
+      "status": "ACTIVE",
+      "status_label": "RB1 (Charb IR)",
+      "weeks_out": 0,
+      "expected_return": "Starting",
+      "note": "Price becomes SEA RB1 with Charbonnet on IR \u2014 8 weeks of full starter volume",
+      "replacement": null,
+      "depth_rank_override": 1
+    },
+    {
+      "player_name": "Tyreek Hill",
+      "team": "MIA",
+      "position": "WR",
+      "status": "OUT",
+      "status_label": "Out - Season",
+      "weeks_out": 17,
+      "expected_return": "Out 2026",
+      "note": "Hill out for season \u2014 Malik Washington is MIA WR1",
+      "replacement": "Malik Washington",
+      "depth_rank_override": null
+    },
+    {
+      "player_name": "Malik Washington",
+      "team": "MIA",
+      "position": "WR",
+      "status": "ACTIVE",
+      "status_label": "WR1 (Hill out)",
+      "weeks_out": 0,
+      "expected_return": "Starting",
+      "note": "Hill out for season \u2014 Washington gets full WR1 target share",
+      "replacement": null,
+      "depth_rank_override": 1
+    },
+    {
+      "player_name": "Malik Nabers",
+      "team": "NYG",
+      "position": "WR",
+      "status": "Q",
+      "status_label": "Questionable",
+      "weeks_out": 0,
+      "expected_return": "Week 1",
+      "note": "Questionable for Week 1 \u2014 monitor status",
+      "replacement": null,
+      "depth_rank_override": null
+    }
+  ]
+}
