@@ -7,6 +7,13 @@ import PlayerModal from '../components/PlayerModal'
 
 const POS_TABS = ['ALL','QB','RB','WR','TE']
 
+// Injury lookup
+const INJURY_MAP = {}
+injuryData.injuries.forEach(p => {
+  INJURY_MAP[`${p.team}_${p.player_name}`] = p
+  INJURY_MAP[p.player_name] = p
+})
+
 // Identify "hidden gem" situations from tendencies data
 const GEM_FLAGS = {}
 tendencies.teams.forEach(team => {
@@ -72,6 +79,7 @@ export default function StatProjections() {
           playCaller: team.playCaller || '?',
           rbSeasons: team.rbSeasons ?? 0,
           newCaller: team.newCaller ?? false,
+          injury: INJURY_MAP[p.player_name] || INJURY_MAP[`${p.team}_${p.player_name}`] || null,
           rbSeasons: team.rbSeasons ?? 0,
           rbStyle: team.rbStyle, teStyle: team.teStyle, wr1Style: team.wr1Style,
         }
@@ -90,6 +98,7 @@ export default function StatProjections() {
         if (posFilter !== 'ALL' && p.position !== posFilter) return false
         if (teamFilter !== 'ALL' && p.team !== teamFilter) return false
         if (tierFilter !== 'ALL' && getTier(p.position, p.ppr).label !== tierFilter) return false
+        if (situationFilter === 'injury_news' && !p.injury) return false
         if (situationFilter === 'new_caller' && !p.newCaller) return false
         if (situationFilter === 'rookie' && (p.years_exp == null || parseInt(p.years_exp) > 0)) return false
         if (situationFilter === 'new_team' && parseInt(p.years_exp) <= 1 && p.depth_rank > 1) return false
@@ -242,6 +251,7 @@ export default function StatProjections() {
             { val:'new_caller', label:'🆕 New Play-Caller' },
             { val:'rookie',     label:'🌟 Rookie (0yr)' },
             { val:'new_team',   label:'🔄 New Team' },
+            { val:'injury_news',label:'🏥 Injury News' },
           ].map(({val, label}) => (
             <button key={val} onClick={() => setSituationFilter(val)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
@@ -279,6 +289,7 @@ export default function StatProjections() {
               <SortHeader label="RecYds" field="recYds" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
               <SortHeader label="TDs" field="recTds" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} center />
               <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide">Tier</th>
+              <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide">Injury Note</th>
             </tr>
           </thead>
           <tbody>
@@ -294,6 +305,10 @@ export default function StatProjections() {
                       <span className="font-semibold text-white hover:text-nfl-blue">{p.player_name}</span>
                       {p.newCaller && <span className="text-xs bg-amber-500/20 text-amber-400 px-1 rounded font-bold">NEW</span>}
                       {(p.years_exp===0||p.years_exp==='0') && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-1 rounded font-bold">RC</span>}
+                      {p.injury?.status==='IR' && <span className="text-xs bg-red-500/20 text-red-400 px-1 rounded font-bold">IR</span>}
+                      {p.injury?.status==='OUT' && <span className="text-xs bg-red-500/20 text-red-400 px-1 rounded font-bold">OUT</span>}
+                      {p.injury?.status==='Q' && <span className="text-xs bg-amber-500/20 text-amber-400 px-1 rounded font-bold">Q</span>}
+                      {p.injury?.status==='ACTIVE' && p.injury?.status_label && <span className="text-xs bg-emerald-500/20 text-emerald-400 px-1 rounded font-bold" title={p.injury.note}>{p.injury.status_label}</span>}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-center">
@@ -314,6 +329,9 @@ export default function StatProjections() {
                   <td className="px-3 py-2.5 text-center text-slate-400 text-xs">{p.rushTds??p.recTds??'—'}</td>
                   <td className="px-3 py-2.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${tier.bg} ${tier.color}`}>{tier.label}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-slate-500 max-w-xs">
+                    {p.injury?.note && <span title={p.injury.note} className="truncate block max-w-[160px]">{p.injury.note}</span>}
                   </td>
                 </tr>
               )
