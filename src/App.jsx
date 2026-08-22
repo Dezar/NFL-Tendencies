@@ -1,12 +1,14 @@
 import React from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { BarChart2, Target } from 'lucide-react'
+import { BarChart2, Target, TrendingUp } from 'lucide-react'
 import StatProjections from './pages/StatProjections'
 import DraftBoard from './pages/DraftBoard'
+import RBAnalysis from './pages/RBAnalysis'
 
 const navItems = [
   { to: '/', label: 'Stat Lines', icon: BarChart2 },
   { to: '/draft', label: 'Draft Board', icon: Target },
+  { to: '/rb', label: 'RB Deep Dive', icon: TrendingUp },
 ]
 
 export default function App() {
@@ -41,6 +43,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<StatProjections />} />
           <Route path="/draft" element={<DraftBoard />} />
+          <Route path="/rb" element={<RBAnalysis />} />
         </Routes>
       </main>
       <footer className="border-t border-nfl-border py-4 text-center text-xs text-slate-600">
