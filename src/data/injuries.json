@@ -6,25 +6,25 @@
       "player_name": "Zach Charbonnet",
       "team": "SEA",
       "position": "RB",
-      "status": "IR",
-      "status_label": "IR 8 wks",
-      "weeks_out": 8,
-      "expected_return": "Week 9",
-      "note": "Charbonnet IR \u2014 Jadarian Price steps in as SEA RB1",
-      "replacement": "Jadarian Price",
-      "depth_rank_override": 1
+      "status": "Q",
+      "status_label": "Q (toe)",
+      "weeks_out": 0,
+      "expected_return": "Week 1",
+      "note": "Charbonnet toe injury \u2014 questionable but expected to play. Monitor.",
+      "replacement": null,
+      "depth_rank_override": null
     },
     {
       "player_name": "Jadarian Price",
       "team": "SEA",
       "position": "RB",
       "status": "ACTIVE",
-      "status_label": "RB1 (Charb IR)",
+      "status_label": "RB2",
       "weeks_out": 0,
       "expected_return": "Starting",
-      "note": "Price becomes SEA RB1 with Charbonnet on IR \u2014 8 weeks of full starter volume",
+      "note": "Charbonnet toe is minor \u2014 Price remains RB2",
       "replacement": null,
-      "depth_rank_override": 1
+      "depth_rank_override": null
     },
     {
       "player_name": "Tyreek Hill",
