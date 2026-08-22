@@ -1,16 +1,18 @@
 import React from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { BarChart2, Target, TrendingUp, GitCompare } from 'lucide-react'
+import { BarChart2, Target, TrendingUp, GitCompare, Zap } from 'lucide-react'
 import StatProjections from './pages/StatProjections'
 import DraftBoard from './pages/DraftBoard'
-import RBAnalysis from './pages/RBAnalysis'
+import DraftValue from './pages/DraftValue'
 import Comparison from './pages/Comparison'
+import RBAnalysis from './pages/RBAnalysis'
 
 const navItems = [
-  { to: '/',           label: 'Stat Lines',  icon: BarChart2 },
-  { to: '/draft',      label: 'Draft Board', icon: Target },
-  { to: '/compare',    label: 'Sanity Check',icon: GitCompare },
-  { to: '/rb',         label: 'RB Dive',     icon: TrendingUp },
+  { to: '/',        label: 'Stat Lines',   icon: BarChart2 },
+  { to: '/draft',   label: 'Draft Board',  icon: Target },
+  { to: '/value',   label: 'Draft Value',  icon: Zap },
+  { to: '/compare', label: 'Sanity Check', icon: GitCompare },
+  { to: '/rb',      label: 'RB Dive',      icon: TrendingUp },
 ]
 
 export default function App() {
@@ -45,12 +47,13 @@ export default function App() {
         <Routes>
           <Route path="/"        element={<StatProjections />} />
           <Route path="/draft"   element={<DraftBoard />} />
+          <Route path="/value"   element={<DraftValue />} />
           <Route path="/compare" element={<Comparison />} />
           <Route path="/rb"      element={<RBAnalysis />} />
         </Routes>
       </main>
       <footer className="border-t border-nfl-border py-4 text-center text-xs text-slate-600">
-        NFL Tendency Engine · Scheme-based projections · Calibrated vs 2025 actuals · Rosters August 2026
+        NFL Tendency Engine · Scheme + year-2 leap projections · Calibrated vs 2025 actuals · Rosters August 2026
       </footer>
     </div>
   )
