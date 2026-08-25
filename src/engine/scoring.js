@@ -11,6 +11,34 @@ export const STD_SCORING    = { ...DEFAULT_SCORING, reception: 0 }
 export const HALF_PPR_SCORING = { ...DEFAULT_SCORING, reception: 0.5 }
 
 // QB-specific rushing profiles (from 2025 actuals + slight projection uptick)
+// Per-QB passing profile — ypa, td%, int% based on 2025 actuals + 2026 projection
+// Attempts come from team pass volume tendency; efficiency is player-specific
+const QB_PASS = {
+  'Josh Allen':       { ypa: 8.1,  tdPct: 0.056, intPct: 0.012 },  // elite efficiency
+  'Drake Maye':       { ypa: 8.5,  tdPct: 0.062, intPct: 0.013 },  // elite 2025, year-2 upside
+  'Jalen Hurts':      { ypa: 7.1,  tdPct: 0.055, intPct: 0.014 },  // solid but not elite passer
+  'Jayden Daniels':   { ypa: 7.6,  tdPct: 0.055, intPct: 0.012 },  // accurate, efficient
+  'Joe Burrow':       { ypa: 7.8,  tdPct: 0.060, intPct: 0.011 },  // elite when healthy
+  'Patrick Mahomes':  { ypa: 7.4,  tdPct: 0.050, intPct: 0.013 },  // volume + clutch, moderate ypa
+  'Lamar Jackson':    { ypa: 7.2,  tdPct: 0.046, intPct: 0.013 },  // passing efficiency, rushing separate
+  'Bo Nix':           { ypa: 7.0,  tdPct: 0.048, intPct: 0.017 },  // volume scheme, modest efficiency
+  'Caleb Williams':   { ypa: 7.6,  tdPct: 0.054, intPct: 0.016 },  // improving, Ben Johnson boost
+  'Jaxson Dart':      { ypa: 7.0,  tdPct: 0.046, intPct: 0.016 },  // partial 2025, upside
+  'Cam Ward':         { ypa: 7.2,  tdPct: 0.046, intPct: 0.016 },  // rookie estimate
+  'Baker Mayfield':   { ypa: 6.9,  tdPct: 0.049, intPct: 0.015 },  // solid floor
+  'Justin Herbert':   { ypa: 7.8,  tdPct: 0.056, intPct: 0.013 },  // efficient, McDaniel upside
+  'Matthew Stafford': { ypa: 7.9,  tdPct: 0.072, intPct: 0.014 },  // elite TD rate when healthy
+  'Jordan Love':      { ypa: 7.7,  tdPct: 0.053, intPct: 0.013 },  // bounce back candidate
+  'Sam Darnold':      { ypa: 7.8,  tdPct: 0.052, intPct: 0.014 },  // surprisingly efficient 2025
+  'Kyler Murray':     { ypa: 7.5,  tdPct: 0.052, intPct: 0.014 },  // solid when healthy
+  'Dak Prescott':     { ypa: 7.6,  tdPct: 0.058, intPct: 0.013 },  // volume + efficiency
+  'Shedeur Sanders':  { ypa: 6.8,  tdPct: 0.044, intPct: 0.018 },  // rookie estimate
+  'Tyler Shough':     { ypa: 6.6,  tdPct: 0.042, intPct: 0.018 },  // rookie estimate
+  'Trevor Lawrence':  { ypa: 7.2,  tdPct: 0.048, intPct: 0.015 },
+  'Bryce Young':      { ypa: 6.8,  tdPct: 0.042, intPct: 0.018 },
+  'default':          { ypa: 7.0,  tdPct: 0.047, intPct: 0.015 },
+}
+
 const QB_RUSH = {
   'Josh Allen':      { rushYds: 610, rushTds: 14.5 },  // BUF monster rusher
   'Jayden Daniels':  { rushYds: 450, rushTds: 6.5  },  // WAS
@@ -109,9 +137,10 @@ export function projectPlayer(player, team, scoring = DEFAULT_SCORING) {
   const passAtt = Math.round(P.teamPassAttempts * (1 + (65 - rbShare) / 220))
 
   if (pos === 'QB' && depth === 1) {
-    const passYds = passAtt * P.qbYardsPerAttempt
-    const passTds = passAtt * P.qbTdPerAttempt
-    const ints    = passAtt * P.qbIntPerAttempt
+    const qbPass  = QB_PASS[player.player_name] || QB_PASS['default']
+    const passYds = passAtt * qbPass.ypa
+    const passTds = passAtt * qbPass.tdPct
+    const ints    = passAtt * qbPass.intPct
     // Use QB-specific rushing profile
     const rushProfile = QB_RUSH[player.player_name] || QB_RUSH['default']
     const rushYds = rushProfile.rushYds
