@@ -1,0 +1,103 @@
+{
+  "note": "Weeks 15-17 are the fantasy playoff weeks. Defensive strength is preseason estimate — will update in-season.",
+  "weeks": [15, 16, 17],
+  "matchups": {
+    "15": {
+      "SF":  "LAC", "LAC": "SF",
+      "SEA": "PHI", "PHI": "SEA",
+      "CHI": "BUF", "BUF": "CHI",
+      "CIN": "CAR", "CAR": "CIN",
+      "MIA": "GB",  "GB":  "MIA",
+      "JAX": "HOU", "HOU": "JAX",
+      "CLE": "NYG", "NYG": "CLE",
+      "BAL": "PIT", "PIT": "BAL",
+      "NO":  "TB",  "TB":  "NO",
+      "IND": "TEN", "TEN": "IND",
+      "ATL": "WAS", "WAS": "ATL",
+      "NYJ": "ARI", "ARI": "NYJ",
+      "DAL": "LA",  "LA":  "DAL",
+      "DEN": "LV",  "LV":  "DEN",
+      "DET": "MIN", "MIN": "DET",
+      "NE":  "KC",  "KC":  "NE"
+    },
+    "16": {
+      "HOU": "PHI", "PHI": "HOU",
+      "GB":  "CHI", "CHI": "GB",
+      "BUF": "DEN", "DEN": "BUF",
+      "LA":  "SEA", "SEA": "LA",
+      "TB":  "ATL", "ATL": "TB",
+      "CLE": "BAL", "BAL": "CLE",
+      "CIN": "IND", "IND": "CIN",
+      "LAC": "MIA", "MIA": "LAC",
+      "WAS": "MIN", "MIN": "WAS",
+      "ARI": "NO",  "NO":  "ARI",
+      "NE":  "NYJ", "NYJ": "NE",
+      "CAR": "PIT", "PIT": "CAR",
+      "TEN": "LV",  "LV":  "TEN",
+      "SF":  "KC",  "KC":  "SF",
+      "JAX": "DAL", "DAL": "JAX",
+      "NYG": "DET", "DET": "NYG"
+    },
+    "17": {
+      "BAL": "CIN", "CIN": "BAL",
+      "NO":  "ATL", "ATL": "NO",
+      "SEA": "CAR", "CAR": "SEA",
+      "IND": "CLE", "CLE": "IND",
+      "NYG": "DAL", "DAL": "NYG",
+      "WAS": "JAX", "JAX": "WAS",
+      "KC":  "LAC", "LAC": "KC",
+      "BUF": "MIA", "MIA": "BUF",
+      "DEN": "NE",  "NE":  "DEN",
+      "MIN": "NYJ", "NYJ": "MIN",
+      "LA":  "TB",  "TB":  "LA",
+      "PIT": "TEN", "TEN": "PIT",
+      "LV":  "ARI", "ARI": "LV",
+      "DET": "CHI", "CHI": "DET",
+      "PHI": "SF",  "SF":  "PHI",
+      "HOU": "GB",  "GB":  "HOU"
+    }
+  },
+  "defenseRankings": {
+    "note": "Preseason estimates. 1=best defense vs position, 32=worst (easiest matchup). Lower rank = harder matchup for offense.",
+    "vsRB": {
+      "SF":  8,  "LAC": 18, "SEA": 14, "PHI": 6,
+      "CHI": 22, "BUF": 19, "CIN": 16, "CAR": 28,
+      "MIA": 25, "GB":  12, "JAX": 27, "HOU": 15,
+      "CLE": 5,  "NYG": 24, "BAL": 3,  "PIT": 7,
+      "NO":  20, "TB":  17, "IND": 23, "TEN": 21,
+      "ATL": 26, "WAS": 29, "NYJ": 11, "ARI": 30,
+      "DAL": 13, "LA":  9,  "DEN": 10, "LV":  32,
+      "DET": 31, "MIN": 4,  "NE":  2,  "KC":  1
+    },
+    "vsWR": {
+      "SF":  4,  "LAC": 14, "SEA": 11, "PHI": 5,
+      "CHI": 20, "BUF": 22, "CIN": 17, "CAR": 26,
+      "MIA": 28, "GB":  16, "JAX": 25, "HOU": 18,
+      "CLE": 8,  "NYG": 21, "BAL": 6,  "PIT": 9,
+      "NO":  23, "TB":  15, "IND": 19, "TEN": 24,
+      "ATL": 27, "WAS": 30, "NYJ": 12, "ARI": 29,
+      "DAL": 10, "LA":  7,  "DEN": 13, "LV":  31,
+      "DET": 32, "MIN": 3,  "NE":  1,  "KC":  2
+    },
+    "vsTE": {
+      "SF":  6,  "LAC": 16, "SEA": 12, "PHI": 7,
+      "CHI": 21, "BUF": 20, "CIN": 18, "CAR": 27,
+      "MIA": 26, "GB":  14, "JAX": 24, "HOU": 17,
+      "CLE": 9,  "NYG": 22, "BAL": 4,  "PIT": 8,
+      "NO":  19, "TB":  15, "IND": 23, "TEN": 25,
+      "ATL": 28, "WAS": 31, "NYJ": 13, "ARI": 29,
+      "DAL": 11, "LA":  10, "DEN": 5,  "LV":  30,
+      "DET": 32, "MIN": 2,  "NE":  3,  "KC":  1
+    },
+    "vsQB": {
+      "SF":  5,  "LAC": 15, "SEA": 13, "PHI": 4,
+      "CHI": 19, "BUF": 21, "CIN": 18, "CAR": 25,
+      "MIA": 27, "GB":  16, "JAX": 26, "HOU": 14,
+      "CLE": 7,  "NYG": 22, "BAL": 3,  "PIT": 6,
+      "NO":  20, "TB":  17, "IND": 24, "TEN": 23,
+      "ATL": 28, "WAS": 30, "NYJ": 11, "ARI": 31,
+      "DAL": 12, "LA":  8,  "DEN": 9,  "LV":  32,
+      "DET": 29, "MIN": 2,  "NE":  1,  "KC":  10
+    }
+  }
+}

@@ -1,18 +1,20 @@
 import React from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { BarChart2, Target, TrendingUp, GitCompare, Zap, DollarSign } from 'lucide-react'
+import { BarChart2, Target, TrendingUp, GitCompare, Zap, DollarSign, CalendarDays } from 'lucide-react'
 import StatProjections from './pages/StatProjections'
 import DraftBoard from './pages/DraftBoard'
 import DraftValue from './pages/DraftValue'
 import Comparison from './pages/Comparison'
 import RBAnalysis from './pages/RBAnalysis'
 import Auction from './pages/Auction'
+import PlayoffSchedule from './pages/PlayoffSchedule'
 
 const navItems = [
   { to: '/',        label: 'Stat Lines',   icon: BarChart2 },
   { to: '/draft',   label: 'Draft Board',  icon: Target },
   { to: '/value',   label: 'Draft Value',  icon: Zap },
-  { to: '/auction', label: 'Auction',      icon: DollarSign },
+  { to: '/auction',  label: 'Auction',      icon: DollarSign },
+  { to: '/playoffs', label: 'Playoffs',     icon: CalendarDays },
   { to: '/compare', label: 'Sanity Check', icon: GitCompare },
   { to: '/rb',      label: 'RB Dive',      icon: TrendingUp },
 ]
@@ -51,6 +53,7 @@ export default function App() {
           <Route path="/draft"   element={<DraftBoard />} />
           <Route path="/value"   element={<DraftValue />} />
           <Route path="/auction" element={<Auction />} />
+          <Route path="/playoffs" element={<PlayoffSchedule />} />
           <Route path="/compare" element={<Comparison />} />
           <Route path="/rb"      element={<RBAnalysis />} />
         </Routes>
