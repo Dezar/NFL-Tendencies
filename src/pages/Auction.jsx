@@ -15,9 +15,9 @@ const SCORING_PRESETS = [
   { label:'Standard', scoring: STD_SCORING },
 ]
 
-// Replacement ranks for 12-team league
-// QB:13, RB:37 (24 starters + ~13 flex), WR:37, TE:13
-const REPLACEMENT_RANK = { QB:13, RB:37, WR:37, TE:13 }
+// Replacement ranks — based on depth-1+2 pool (waiver wire reality)
+// QB:13 (1 per team), RB:36 (24 starters + 12 flex spots), WR:36, TE:13
+const REPLACEMENT_RANK = { QB:13, RB:36, WR:36, TE:13 }
 
 function SortTh({ label, field, sortBy, sortDir, onSort, right }) {
   const active = sortBy === field
@@ -66,29 +66,39 @@ export default function Auction() {
 
   // Project all depth-1 players
   const projected = useMemo(() => {
-    const byPos = { QB:[], RB:[], WR:[], TE:[] }
+    // Build two pools:
+    // fullPool: depth 1+2 — used to set realistic replacement PPR baseline
+    // byPos: depth 1 only — the actual auction targets
+    const fullPool = { QB:[], RB:[], WR:[], TE:[] }
+    const byPos    = { QB:[], RB:[], WR:[], TE:[] }
+
     rostersData.players
-      .filter(p => p.depth_rank === 1 && byPos[p.position] !== undefined)
+      .filter(p => p.depth_rank <= 2 && byPos[p.position] !== undefined)
       .forEach(p => {
         const team = teamMap[p.team] || {}
         const raw  = projectPlayer(p, team, scoring)
         const proj = applyExperience(p.player_name, raw)
-        if (proj.ppr > 0) byPos[p.position].push({
-          ...p, ...proj,
-          playCaller: team.playCaller||'?', newCaller: team.newCaller||false,
-          rbStyle: team.rbStyle, avgRbShare: team.avgRbShare,
-          avgWr1Share: team.avgWr1Share, avgTeShare: team.avgTeShare,
-          injury: INJURY_MAP[p.player_name]||null,
-        })
+        if (proj.ppr > 0) {
+          const entry = {
+            ...p, ...proj,
+            playCaller: team.playCaller||'?', newCaller: team.newCaller||false,
+            rbStyle: team.rbStyle, avgRbShare: team.avgRbShare,
+            avgWr1Share: team.avgWr1Share, avgTeShare: team.avgTeShare,
+            injury: INJURY_MAP[p.player_name]||null,
+          }
+          fullPool[p.position].push(entry)
+          if (p.depth_rank === 1) byPos[p.position].push(entry)
+        }
       })
 
     // Sort and assign pos_rank, VOR, auction value
     const result = []
     const posVOR = { QB:0, RB:0, WR:0, TE:0 }
 
-    // First pass: get rep PPR for each position
+    // First pass: get rep PPR using FULL pool (depth 1+2) for realistic baseline
+    // In a 12-team 2RB/2FLEX league, ~36 RBs and ~36 WRs get drafted
     const repPPR = {}
-    Object.entries(byPos).forEach(([pos, players]) => {
+    Object.entries(fullPool).forEach(([pos, players]) => {
       players.sort((a,b) => b.ppr-a.ppr)
       const repRank = repRanks[pos] - 1
       repPPR[pos] = players[Math.min(repRank, players.length-1)]?.ppr || 150
@@ -361,7 +371,7 @@ export default function Auction() {
       {/* How auction values work */}
       <div className="mt-4 p-5 bg-nfl-card border border-nfl-border rounded-xl text-xs text-slate-400 space-y-2">
         <div className="text-white font-semibold text-sm mb-2">How Auction Values Are Calculated</div>
-        <p><span className="text-white font-semibold">Step 1 — VOR:</span> Each player's projection minus the last draftable player at their position (QB13, RB37, WR37, TE13 in a 12-team league). This is the true value above what's free.</p>
+        <p><span className="text-white font-semibold">Step 1 — VOR:</span> Each player's projection minus the replacement-level baseline — the best player likely available on waivers (QB13, RB36, WR36, TE13 in a 12-team league, drawn from the full depth-1+2 pool). This is the true value above what's free.</p>
         <p><span className="text-white font-semibold">Step 2 — Position budget:</span> The total $200 × 12 teams = $2,400 pool is divided proportionally by how much VOR is available at each position. More VOR at a position = more budget should flow there.</p>
         <p><span className="text-white font-semibold">Step 3 — Player price:</span> Each player gets a slice of their position's budget proportional to their VOR share. Higher VOR = higher price.</p>
         <p><span className="text-white font-semibold">Key auction rules:</span></p>
