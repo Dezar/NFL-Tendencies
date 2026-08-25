@@ -19,7 +19,7 @@ const QB_RUSH = {
   'Bo Nix':          { rushYds: 375, rushTds: 5.5  },  // DEN
   'Lamar Jackson':   { rushYds: 350, rushTds: 4.5  },  // BAL (injury-reduced 2025)
   'Sam Darnold':     { rushYds: 280, rushTds: 3.0  },  // SEA
-  'Jaxson Dart':     { rushYds: 510, rushTds: 9.5  },  // NYG mobile
+  'Jaxson Dart':     { rushYds: 350, rushTds: 5.5  },  // NYG mobile - recalibrated
   'Drake Maye':      { rushYds: 475, rushTds: 4.5  },  // NE
   'Baker Mayfield':  { rushYds: 440, rushTds: 5.5  },  // TB
   'Trevor Lawrence': { rushYds: 375, rushTds: 9.5  },  // JAX
@@ -63,7 +63,7 @@ export const PROJECTION = {
 const EXPERIENCE_MULT = {
   // 2nd year players (were rookies in 2025) - year-2 leap
   'Ashton Jeanty':          1.35,
-  'Jaxson Dart':            1.35,
+  'Jaxson Dart':            1.15,  // QB Y2 leap less dramatic than RB
   'Omarion Hampton':        1.30,
   'Tetairoa McMillan':      1.28,
   'Tyler Warren':           1.28,
