@@ -24,17 +24,18 @@ const QB_PASS = {
   'Bo Nix':           { ypa: 7.0,  tdPct: 0.048, intPct: 0.017 },  // volume scheme, modest efficiency
   'Caleb Williams':   { ypa: 7.6,  tdPct: 0.054, intPct: 0.016 },  // improving, Ben Johnson boost
   'Jaxson Dart':      { ypa: 7.0,  tdPct: 0.046, intPct: 0.016 },  // partial 2025, upside
-  'Cam Ward':         { ypa: 7.2,  tdPct: 0.046, intPct: 0.016 },  // rookie estimate
+  'Cam Ward':         { ypa: 6.8,  tdPct: 0.038, intPct: 0.015 },  // 2025: 5.9ypa/15td rookie, Y2 Daboll improvement
   'Baker Mayfield':   { ypa: 6.9,  tdPct: 0.049, intPct: 0.015 },  // solid floor
   'Justin Herbert':   { ypa: 7.8,  tdPct: 0.056, intPct: 0.013 },  // efficient, McDaniel upside
   'Matthew Stafford': { ypa: 7.9,  tdPct: 0.072, intPct: 0.014 },  // elite TD rate when healthy
   'Jordan Love':      { ypa: 7.7,  tdPct: 0.053, intPct: 0.013 },  // bounce back candidate
   'Sam Darnold':      { ypa: 7.8,  tdPct: 0.052, intPct: 0.014 },  // surprisingly efficient 2025
-  'Kyler Murray':     { ypa: 7.5,  tdPct: 0.052, intPct: 0.014 },  // solid when healthy
+  'Kyler Murray':     { ypa: 7.5,  tdPct: 0.052, intPct: 0.014 },
+  'Jared Goff':       { ypa: 7.9,  tdPct: 0.059, intPct: 0.012 },  // 2025: 4564yds/34td, elite efficiency in McVay-style offense  // solid when healthy
   'Dak Prescott':     { ypa: 7.6,  tdPct: 0.058, intPct: 0.013 },  // volume + efficiency
   'Shedeur Sanders':  { ypa: 6.8,  tdPct: 0.044, intPct: 0.018 },  // rookie estimate
   'Tyler Shough':     { ypa: 6.6,  tdPct: 0.042, intPct: 0.018 },  // rookie estimate
-  'Trevor Lawrence':  { ypa: 7.2,  tdPct: 0.048, intPct: 0.015 },
+  'Trevor Lawrence':  { ypa: 7.2,  tdPct: 0.052, intPct: 0.014 },  // 2025: 417 PPR real
   'Bryce Young':      { ypa: 6.8,  tdPct: 0.042, intPct: 0.018 },
   'default':          { ypa: 7.0,  tdPct: 0.047, intPct: 0.015 },
 }
@@ -43,23 +44,26 @@ const QB_RUSH = {
   'Josh Allen':      { rushYds: 610, rushTds: 14.5 },  // BUF monster rusher
   'Jayden Daniels':  { rushYds: 450, rushTds: 6.5  },  // WAS
   'Jalen Hurts':     { rushYds: 440, rushTds: 8.5  },  // PHI
-  'Caleb Williams':  { rushYds: 400, rushTds: 3.5  },  // CHI
+  'Caleb Williams':  { rushYds: 420, rushTds: 3.5  },  // CHI 2025: 383/3, year-2 uptick
   'Bo Nix':          { rushYds: 375, rushTds: 5.5  },  // DEN
   'Lamar Jackson':   { rushYds: 350, rushTds: 4.5  },  // BAL (injury-reduced 2025)
-  'Sam Darnold':     { rushYds: 280, rushTds: 3.0  },  // SEA
+  'Sam Darnold':     { rushYds: 95,  rushTds: 0.5  },  // SEA 2025: 95 yds, pocket passer
   'Jaxson Dart':     { rushYds: 350, rushTds: 5.5  },  // NYG mobile - recalibrated
   'Drake Maye':      { rushYds: 475, rushTds: 4.5  },  // NE
-  'Baker Mayfield':  { rushYds: 440, rushTds: 5.5  },  // TB
-  'Trevor Lawrence': { rushYds: 375, rushTds: 9.5  },  // JAX
-  'Patrick Mahomes': { rushYds: 440, rushTds: 5.5  },  // KC
+  'Baker Mayfield':  { rushYds: 420, rushTds: 5.0  },  // TB 2025: 422/5 actual
+  'Trevor Lawrence': { rushYds: 360, rushTds: 9.0  },  // JAX 2025: 359/9 actual
+  'Patrick Mahomes': { rushYds: 420, rushTds: 5.0  },  // KC 2025: 422/5 actual
   'Bryce Young':     { rushYds: 220, rushTds: 2.0  },  // CAR
-  'Justin Herbert':  { rushYds: 350, rushTds: 1.5  },  // LAC
   'Joe Burrow':      { rushYds: 115, rushTds: 1.5  },  // CIN pocket passer
   'Kirk Cousins':    { rushYds: 120, rushTds: 1.0  },  // LV
   'Matthew Stafford':{ rushYds: 30,  rushTds: 0.5  },  // LAR pocket passer
   'Kyler Murray':    { rushYds: 480, rushTds: 5.0  },  // MIN
   'C.J. Stroud':     { rushYds: 360, rushTds: 2.5  },  // HOU
   'Jordan Love':     { rushYds: 210, rushTds: 0.5  },  // GB
+  'Cam Ward':        { rushYds: 200, rushTds: 2.5  },  // TEN 2025: 159/2 rookie, Y2 improvement
+  'Jared Goff':      { rushYds: 20,  rushTds: 0.0  },  // MIN pocket passer
+  'Dak Prescott':    { rushYds: 180, rushTds: 2.0  },  // DAL 2025: 177/2 actual
+  'Justin Herbert':  { rushYds: 380, rushTds: 1.5  },  // LAC 2025: 382/1 actual
   'default':         { rushYds: 280, rushTds: 3.5  },
 }
 
