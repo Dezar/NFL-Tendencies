@@ -5,6 +5,22 @@ import stats2024data from '../data/stats_2024.json'
 import stats2025data from '../data/stats_2025.json'
 import tendencies from '../data/tendencies.json'
 import injuryData from '../data/injuries.json'
+import playoffData from '../data/playoff_schedule.json'
+
+function getPlayoffSOS(team, pos) {
+  if (!team || !pos) return null
+  const rankKey = pos === 'QB' ? 'vsQB' : pos === 'RB' ? 'vsRB' : pos === 'WR' ? 'vsWR' : 'vsTE'
+  const defRanks = playoffData.defenseRankings[rankKey]
+  const weeks = [15, 16, 17].map(wk => {
+    const opp = playoffData.matchups[String(wk)]?.[team]
+    return opp ? defRanks[opp] : null
+  }).filter(r => r !== null)
+  if (weeks.length === 0) return null
+  const avg = weeks.reduce((a, b) => a + b, 0) / weeks.length
+  if (avg >= 22) return { label: '\ud83d\udfe2 Playoff Friendly', color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/30', wk15: playoffData.matchups['15']?.[team], wk16: playoffData.matchups['16']?.[team], wk17: playoffData.matchups['17']?.[team] }
+  if (avg >= 14) return { label: '\ud83d\udfe1 Mixed Playoffs',   color: 'text-yellow-400',  bg: 'bg-yellow-400/10 border-yellow-400/30',  wk15: playoffData.matchups['15']?.[team], wk16: playoffData.matchups['16']?.[team], wk17: playoffData.matchups['17']?.[team] }
+  return             { label: '\ud83d\udd34 Tough Playoffs',   color: 'text-red-400',    bg: 'bg-red-400/10 border-red-400/30',   wk15: playoffData.matchups['15']?.[team], wk16: playoffData.matchups['16']?.[team], wk17: playoffData.matchups['17']?.[team] }
+}
 
 const INJURY_MAP = {}
 injuryData.injuries.forEach(p => { INJURY_MAP[p.player_name] = p })
@@ -125,6 +141,7 @@ export default function PlayerModal({ player, team, onClose, scoring=DEFAULT_SCO
   const sig  = SIGNAL_MAP[player.player_name]
   const pos  = player.position
   const lines = schemeLines(player, team)
+  const sos = getPlayoffSOS(player.team, pos)
   const headshot = a25?.headshot_url || a24?.headshot_url || null
   const pprTrend = a25?.fantasy_ppr ? Math.round((player.ppr-a25.fantasy_ppr)/a25.fantasy_ppr*100) : null
 
@@ -148,6 +165,7 @@ export default function PlayerModal({ player, team, onClose, scoring=DEFAULT_SCO
                   <h2 className="text-xl font-black text-white">{player.player_name}</h2>
                   <span className="text-xs font-bold bg-nfl-border/60 text-slate-300 px-2 py-0.5 rounded">{pos}</span>
                   {sig&&<span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${SIG_STYLE[sig.signal]||''}`}>{SIG_LABEL[sig.signal]||sig.signal}</span>}
+                  {sos&&<span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${sos.bg} ${sos.color}`}>{sos.label}</span>}
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
                   <span className="text-white font-semibold">{player.team}</span>
@@ -289,6 +307,32 @@ export default function PlayerModal({ player, team, onClose, scoring=DEFAULT_SCO
                 <AdvBox label="Yds/Carry" v25={a25?.ypc} v24={a24?.ypc}/>
                 <AdvBox label="Rush 1st Dns" v25={null} v24={a24?.rushing_first_downs}/>
                 <AdvBox label="Rec 1st Dns" v25={null} v24={a24?.receiving_first_downs}/>
+              </div>
+            </div>
+          )}
+
+          {/* Playoff Schedule */}
+          {sos&&(
+            <div>
+              <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-3">Playoff Schedule (Wks 15–17)</div>
+              <div className={`rounded-xl border p-4 ${sos.bg}`}>
+                <div className={`text-sm font-bold mb-3 ${sos.color}`}>{sos.label}</div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[{wk:'Wk 15',opp:sos.wk15},{wk:'Wk 16',opp:sos.wk16},{wk:'Wk 17',opp:sos.wk17}].map(({wk,opp})=>{
+                    if (!opp) return <div key={wk} className="bg-nfl-dark rounded-lg p-2 text-center"><div className="text-xs text-slate-500">{wk}</div><div className="text-sm font-bold text-slate-600">—</div></div>
+                    const rankKey = pos==='QB'?'vsQB':pos==='RB'?'vsRB':pos==='WR'?'vsWR':'vsTE'
+                    const rank = playoffData.defenseRankings[rankKey][opp]
+                    const r = rank<=8?{e:'🔴',c:'text-red-400'}:rank<=18?{e:'🟡',c:'text-yellow-400'}:{e:'🟢',c:'text-emerald-400'}
+                    return (
+                      <div key={wk} className="bg-nfl-dark rounded-lg p-2 text-center">
+                        <div className="text-xs text-slate-500 mb-1">{wk}</div>
+                        <div className="text-sm font-bold text-white">vs {opp}</div>
+                        <div className={`text-xs mt-0.5 ${r.c}`}>{r.e} #{rank} def</div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-slate-500 mt-3">Defense rank vs {pos}: 1=hardest, 32=easiest matchup</p>
               </div>
             </div>
           )}
