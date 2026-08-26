@@ -6,11 +6,11 @@
       "player_name": "Zach Charbonnet",
       "team": "SEA",
       "position": "RB",
-      "status": "Q",
-      "status_label": "Q (toe)",
+      "status": "PUP",
+      "status_label": "PUP List",
       "weeks_out": 0,
       "expected_return": "Week 1",
-      "note": "Charbonnet toe injury \u2014 questionable but expected to play. Monitor.",
+      "note": "PUP (toe) \u2014 may miss start of season. Jadarian Price path to RB1.",
       "replacement": null,
       "depth_rank_override": null
     },
@@ -61,6 +61,13 @@
       "note": "Questionable for Week 1 \u2014 monitor status",
       "replacement": null,
       "depth_rank_override": null
+    },
+    {
+      "player_name": "Isiah Pacheco",
+      "team": "DET",
+      "status": "Q",
+      "note": "MCL sprain in practice \u2014 may miss Week 1. Gibbs gets even more work early.",
+      "status_label": "Questionable"
     }
   ]
 }
