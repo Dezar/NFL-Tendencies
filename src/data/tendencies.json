@@ -1231,14 +1231,14 @@
       "playCaller": "David Blough",
       "hc": "Dan Quinn",
       "rbStyle": "Lean RB1 (55-64%)",
-      "avgRbShare": 58.0,
+      "avgRbShare": 64.0,
       "teStyle": "Neutral (20-24%)",
       "avgTeShare": 22.0,
       "wr1Style": "Alpha-Lean (25-29%)",
       "avgWr1Share": 26.0,
       "rbSeasons": 0,
       "newCaller": true,
-      "notes": "Blough first-time OC. JCM RB1 but QUESTIONABLE lower body. Committee with White/Ford on 3rd down.",
+      "notes": "Blough OC (30yo, first-time). Tree: Ben Johnson + Kevin O'Connell. Pass-heavy spread, RB-as-receiver emphasis. JCM praised for cutback skills. Committee with White/Ford on 3rd dn.",
       "keyPlayers": [
         {
           "name": "Jayden Daniels",
@@ -1269,7 +1269,7 @@
           "note": "New caller \u2014 no tendency data"
         }
       ],
-      "avgRbRecShare": 11.0
+      "avgRbRecShare": 16.5
     }
   ],
   "coachTendencies": [
