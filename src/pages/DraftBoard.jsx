@@ -73,7 +73,7 @@ export default function DraftBoard() {
   const [scoringIdx, setScoringIdx] = useState(0)
   const [posFilter, setPosFilter] = useState('ALL')
   const [tierFilter, setTierFilter] = useState('ALL')
-  const [sortBy, setSortBy] = useState('vor')
+  const [sortBy, setSortBy] = useState('ppr')
   const [sortDir, setSortDir] = useState('desc')
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [selectedTeam, setSelectedTeamData] = useState(null)
@@ -103,6 +103,10 @@ export default function DraftBoard() {
           })
         }
       })
+
+    // Assign overall rank by PPR across all positions
+    const allForRank = Object.values(byPos).flat().sort((a,b) => b.ppr - a.ppr)
+    allForRank.forEach((p, i) => { p.overall_rank = i + 1 })
 
     // Sort each position and assign pos_rank + VOR
     const result = []
@@ -261,6 +265,7 @@ export default function DraftBoard() {
           <thead>
             <tr className="border-b border-nfl-border">
               <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide w-8">#</th>
+              <SortTh label="OVR" field="overall_rank" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
               <SortTh label="Player" field="player_name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
               <th className="px-3 py-3 text-xs text-slate-400 font-medium uppercase tracking-wide">Pos</th>
               <SortTh label="Team" field="team" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}/>
@@ -283,7 +288,7 @@ export default function DraftBoard() {
                 <tr key={`${p.team}-${p.player_name}`}
                   onClick={() => { setSelectedPlayer(p); setSelectedTeamData(teamMap[p.team]||null) }}
                   className={`border-b border-nfl-border/30 hover:bg-nfl-blue/5 cursor-pointer transition-colors ${p.isSleeper?'bg-amber-400/[0.03]':''}`}>
-                  <td className="px-3 py-2.5 text-center text-xs text-slate-500">{i+1}</td>
+                  <td className="px-3 py-2.5 text-center text-xs font-bold text-slate-400">#{p.overall_rank}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold text-white">{p.player_name}</span>
