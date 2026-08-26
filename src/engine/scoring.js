@@ -2,7 +2,7 @@
 // Calibrated against 2025 actual NFL stats
 
 export const DEFAULT_SCORING = {
-  passTd: 4, passYd: 0.04, passInt: -2, pass2pt: 2,
+  passTd: 6, passYd: 0.04, passInt: -2, pass2pt: 2,
   rushTd: 6, rushYd: 0.1, rush2pt: 2,
   recTd: 6, recYd: 0.1, reception: 1,  // PPR
   rec2pt: 2,
