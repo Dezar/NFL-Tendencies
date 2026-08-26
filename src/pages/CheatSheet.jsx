@@ -29,28 +29,41 @@ const ESPN = {
 }
 
 const TARGETS = {
-  'Ashton Jeanty':     { slot:'RB1', maxBid:72, why:'Bell cow LV, year-2 ×1.35 — biggest market gap on board' },
-  'Omarion Hampton':   { slot:'RB2', maxBid:58, why:'Year-2 ×1.30, McDaniel system, market way behind at $33' },
-  'Cam Skattebo':      { slot:'RB2', maxBid:50, why:'Model $63 vs ESPN $20 — single biggest gap, NYG = low appeal' },
-  "De'Von Achane":     { slot:'RB2', maxBid:44, why:'Alpha of MIA offense, Hafley 40+ touch game plan' },
-  'James Cook III':    { slot:'RB3', maxBid:44, why:'Reigning rushing champ, Brady expanding receiving role' },
-  'Derrick Henry':     { slot:'RB3', maxBid:38, why:'Workhorse BAL — if room sleeps below $38' },
-  'Bhayshul Tuten':    { slot:'RB3', maxBid:35, why:'Year-2 ×1.08 + new Coen scheme JAX, invisible to room' },
-  'Quinshon Judkins':  { slot:'RB3', maxBid:30, why:'Run-heavy CLE, Monken scheme, model +$12 over ESPN' },
-  'Jacory Croskey-Merritt': { slot:'RB4', maxBid:20, why:'Blough tree (Johnson+OConnell), year-2, WAS receiving role' },
-  'Jadarian Price':    { slot:'RB4', maxBid:10, why:'Charbonnet PUP, path to SEA RB1 early season' },
-  'Emeka Egbuka':      { slot:'WR1', maxBid:30, why:'Year-2 ×1.25, Evans gone from TB, ESPN $19 vs model $41' },
-  'DJ Moore':          { slot:'WR1', maxBid:28, why:'Model $37 vs ESPN $11 — biggest WR market gap, BUF play action' },
-  'Terry McLaurin':    { slot:'WR2', maxBid:22, why:'Blough tree benefits WAS volume, model +$19 over ESPN' },
-  'Zay Flowers':       { slot:'WR2', maxBid:22, why:'New BAL motion system, manufactured touches — even with ESPN' },
-  'Brian Thomas Jr.':  { slot:'WR2', maxBid:20, why:'Model $37 vs ESPN $4 — massive gap, Lawrence connection' },
-  'Sam LaPorta':       { slot:'TE',  maxBid:8,  why:'DET offense elite, if room sleeps — ESPN only $6' },
-  'Pat Freiermuth':    { slot:'TE',  maxBid:3,  why:'Punt TE — McCarthy system upside at minimum bid' },
-  'Jalen Hurts':       { slot:'QB',  maxBid:1,  why:'Punt QB — any $1 starter works' },
+  // ── RB1 ──────────────────────────────────────────────────────────────────
+  'Ashton Jeanty':          { slot:'RB1', maxBid:72, why:'Bell cow LV, year-2 ×1.35 — biggest market gap on board. Walk above $72.' },
+  // ── RB2 ──────────────────────────────────────────────────────────────────
+  'Omarion Hampton':        { slot:'RB2', maxBid:58, why:'Year-2 ×1.30, McDaniel system — market at $33, model $75. Buy confidently.' },
+  'Cam Skattebo':           { slot:'RB2', maxBid:50, why:'Model $63 vs ESPN $20 — biggest single gap, NYG = low market appeal.' },
+  "De'Von Achane":          { slot:'RB2', maxBid:44, why:'Alpha MIA offense, 40+ touch game plan — walk above $44 (Willis limits ceiling).' },
+  'James Cook III':         { slot:'RB2', maxBid:44, why:'Reigning NFL rushing champ (1,621 yds), Brady expanding receiving role — ESPN $46 is fair.' },
+  // ── RB3 / FLEX ───────────────────────────────────────────────────────────
+  'Derrick Henry':          { slot:'RB3', maxBid:38, why:'True workhorse BAL (76% share) — model even with ESPN, never a bad deal at market.' },
+  'Quinshon Judkins':       { slot:'RB3', maxBid:32, why:'Run-heavy CLE Monken scheme, workhorse role — model way above ESPN $21.' },
+  'Jahmyr Gibbs':           { slot:'RB3', maxBid:38, why:'Bell cow DET (Montgomery gone, Pacheco hurt) — ESPN $57 is the trap, pay up to $38.' },
+  'Chase Brown':            { slot:'RB3', maxBid:34, why:'Featured back CIN solid offense — model slight edge over ESPN $35.' },
+  'Bhayshul Tuten':         { slot:'RB3', maxBid:28, why:'Year-2 ×1.08 + new Coen scheme JAX — invisible to room at ESPN $9.' },
+  'Josh Jacobs':            { slot:'RB3', maxBid:28, why:'Steady GB workhorse — model $25 vs ESPN $27, slight edge at right price.' },
+  'Breece Hall':            { slot:'RB3', maxBid:28, why:'Hall is the featured back in NYJ — model slight edge over ESPN $32.' },
+  'Jaylen Warren':          { slot:'RB3', maxBid:18, why:'PIT lead back with Harris gone — ESPN only $5, model likes him as lean RB1.' },
+  // ── RB4 / Upside ─────────────────────────────────────────────────────────
+  'Jacory Croskey-Merritt': { slot:'RB4', maxBid:20, why:'Blough tree (Johnson+OConnell), year-2 ×1.05, elevated WAS receiving role.' },
+  'Jadarian Price':         { slot:'RB4', maxBid:10, why:'Charbonnet PUP, path to SEA RB1 early season — $10 lottery ticket.' },
+  'Saquon Barkley':         { slot:'RB4', maxBid:22, why:'NC, PHI featured — model even with ESPN $37, buy if room sleeps below $22.' },
+  // ── WR ───────────────────────────────────────────────────────────────────
+  'Emeka Egbuka':           { slot:'WR1', maxBid:30, why:'Year-2 ×1.25, Evans gone TB, ESPN $19 vs model $41 — clear market edge.' },
+  'DJ Moore':               { slot:'WR1', maxBid:28, why:'Model $37 vs ESPN $11 — biggest WR gap, BUF play action with Cook.' },
+  'Terry McLaurin':         { slot:'WR2', maxBid:22, why:'Blough tree benefits WAS volume (Johnson+OConnell) — model +$19 over ESPN.' },
+  'Zay Flowers':            { slot:'WR2', maxBid:22, why:'New BAL motion system, manufactured touches — model even with ESPN $23.' },
+  'Brian Thomas Jr.':       { slot:'WR2', maxBid:20, why:'Model $37 vs ESPN $4 — massive gap, Lawrence connection is real.' },
+  // ── TE ───────────────────────────────────────────────────────────────────
+  'Sam LaPorta':            { slot:'TE',  maxBid:8,  why:'DET offense elite, Goff connection — ESPN only $6, grab if room sleeps.' },
+  'Pat Freiermuth':         { slot:'TE',  maxBid:3,  why:'Punt TE — McCarthy system upside at minimum bid.' },
+  // ── QB ───────────────────────────────────────────────────────────────────
+  'Jalen Hurts':            { slot:'QB',  maxBid:1,  why:'Punt QB — any $1 starter works. Never pay more.' },
 }
 
 const FADES = {
-  'Jahmyr Gibbs':      { why:'ESPN $57 vs model $45 — nominate early, let room bleed' },
+  'Jahmyr Gibbs':      { why:'ESPN $57 — nominate early IF you want someone else. Buy at $38 if room overshoots.' },
   'Bijan Robinson':    { why:'ESPN $56 vs model $39 — new OC uncertainty, walk above $45' },
   "Ja'Marr Chase":     { why:'ESPN $56 vs model $54 — walk above $50, nominate to drain budgets' },
   'Jonathan Taylor':   { why:'ESPN $52 vs model $26 — injury history, IND offense overhyped' },
@@ -60,7 +73,7 @@ const FADES = {
   'Trey McBride':      { why:'ESPN $38 vs model $19 — punting TE, nominate to drain TE buyers' },
 }
 
-const NOMINATE_EARLY = ['Jahmyr Gibbs','Bijan Robinson',"Ja'Marr Chase",'Jonathan Taylor','Trey McBride','CeeDee Lamb','Amon-Ra St. Brown','Christian McCaffrey']
+const NOMINATE_EARLY = ['Bijan Robinson',"Ja'Marr Chase",'Jonathan Taylor','Trey McBride','CeeDee Lamb','Amon-Ra St. Brown','Christian McCaffrey']
 
 const BUDGET_PLAN = [
   { slot:'RB1',   min:55, max:72, color:'bg-blue-500',    desc:'Jeanty only — walk above $72' },
