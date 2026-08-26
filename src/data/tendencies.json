@@ -9,13 +9,13 @@
       "hc": "Mike LaFleur",
       "rbStyle": "Featured (65-74%)",
       "avgRbShare": 68.2,
-      "teStyle": "Neutral (20-24%)",
-      "avgTeShare": 27.5,
+      "teStyle": "TE-Heavy (30%+)",
+      "avgTeShare": 32.0,
       "wr1Style": "Balanced (20-24%)",
       "avgWr1Share": 22.8,
       "rbSeasons": 3,
       "newCaller": true,
-      "notes": "LaFleur does NOT call plays. Hackett is play-caller, ex-DEN HC.",
+      "notes": "Hackett OC (ex-KC, worked with Kelce). Elite TE-heavy scheme. McBride 169 tgts/330 PPR 2025 = 36% actual share. Murray mobile = TE safety valve.",
       "keyPlayers": [
         {
           "name": "James Conner",
@@ -416,10 +416,10 @@
       "teStyle": "TE-Heavy (30%+)",
       "avgTeShare": 34.2,
       "wr1Style": "Alpha-Lean (25-29%)",
-      "avgWr1Share": 25.8,
+      "avgWr1Share": 27.0,
       "rbSeasons": 3,
       "newCaller": true,
-      "notes": "Montgomery traded to HOU. Gibbs clear bell cow. Pacheco backup (MCL sprain).",
+      "notes": "Petzing OC (ex-ARI). Gibbs bell cow. ARSB 172 tgts/343 PPR in 2025 \u2014 elite usage regardless of scheme. Goff still starter.",
       "keyPlayers": [
         {
           "name": "Jahmyr Gibbs",
@@ -749,14 +749,14 @@
       "playCaller": "Bobby Slowik",
       "hc": "Jeff Hafley",
       "rbStyle": "Featured (65-74%)",
-      "avgRbShare": 65.5,
+      "avgRbShare": 68.0,
       "teStyle": "TE-Friendly (25-29%)",
       "avgTeShare": 18.0,
       "wr1Style": "Alpha-Lean (25-29%)",
-      "avgWr1Share": 27.0,
+      "avgWr1Share": 24.0,
       "rbSeasons": 2,
       "newCaller": true,
-      "notes": "Tyreek Hill out for 2026. Malik Washington steps in as WR1. Achane and the scheme remain strong \u2014 receivers are the question mark.",
+      "notes": "Hafley HC, Slowik OC. Willis QB (running QB, limits pass volume). Washington WR1 but committee room with Tolbert/Douglas. Achane alpha. Hill+Waddle gone.",
       "keyPlayers": [
         {
           "name": "De'Von Achane",
@@ -1118,10 +1118,10 @@
       "teStyle": "Neutral (20-24%)",
       "avgTeShare": 22.0,
       "wr1Style": "Alpha-Lean (25-29%)",
-      "avgWr1Share": 25.0,
+      "avgWr1Share": 28.0,
       "rbSeasons": 0,
       "newCaller": true,
-      "notes": "First-time play-caller. Ex-SF TE coach. Macdonald does NOT call plays. JSN had 36.8% target share in 2025 under Kubiak \u2014 new scheme may redistribute.",
+      "notes": "Fleury new OC. JSN OPoY 2025 (163 tgts, 400 PPR). Darnold limited but JSN volume is real. Run-heavy scheme caps ceiling.",
       "keyPlayers": [
         {
           "name": "Jaxon Smith-Njigba",
