@@ -17,7 +17,7 @@ const QB_PASS = {
   'Josh Allen':       { ypa: 8.1,  tdPct: 0.056, intPct: 0.012 },  // elite efficiency
   'Drake Maye':       { ypa: 8.5,  tdPct: 0.062, intPct: 0.013 },  // elite 2025, year-2 upside
   'Jalen Hurts':      { ypa: 7.1,  tdPct: 0.055, intPct: 0.014 },  // solid but not elite passer
-  'Jayden Daniels':   { ypa: 7.6,  tdPct: 0.055, intPct: 0.012 },  // accurate, efficient
+  'Jayden Daniels':   { ypa: 7.7,  tdPct: 0.057, intPct: 0.012 },  // Blough tree: Johnson+O'Connell  // accurate, efficient
   'Joe Burrow':       { ypa: 7.8,  tdPct: 0.060, intPct: 0.011 },  // elite when healthy
   'Patrick Mahomes':  { ypa: 7.4,  tdPct: 0.050, intPct: 0.013 },  // volume + clutch, moderate ypa
   'Lamar Jackson':    { ypa: 7.2,  tdPct: 0.046, intPct: 0.013 },  // passing efficiency, rushing separate
